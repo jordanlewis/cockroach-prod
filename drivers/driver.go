@@ -22,7 +22,7 @@ import "github.com/cockroachdb/cockroach-prod/base"
 // HostConfig describes the docker-machine host config.
 // Driver is the driver-specific config.
 // We only specify the fields we currently use. For the full list, see:
-// https://github.com/docker/machine/blob/master/libmachine/host.go
+// https://github.com/docker/machine/blob/master/libmachine/host/host.go
 type HostConfig struct {
 	DriverName string
 	Driver     DriverConfig
