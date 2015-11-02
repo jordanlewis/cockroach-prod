@@ -19,6 +19,7 @@ package amazon
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/cockroachdb/cockroach/util"
 )
@@ -26,7 +27,7 @@ import (
 // FindDefaultVPC looks for the default VPC in a given region
 // and returns its ID if found.
 func FindDefaultVPC(region string) (string, error) {
-	ec2Service := ec2.New(&aws.Config{Region: aws.String(region)})
+	ec2Service := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
 
 	// Call the DescribeInstances Operation
 	resp, err := ec2Service.DescribeVpcs(&ec2.DescribeVpcsInput{

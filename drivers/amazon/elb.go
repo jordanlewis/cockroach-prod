@@ -19,6 +19,7 @@ package amazon
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/cockroachdb/cockroach/util"
 	"github.com/cockroachdb/cockroach/util/log"
@@ -33,7 +34,7 @@ const (
 // and returns its external DNS name if found.
 // If not found, err=nil and dnsName="".
 func FindCockroachELB(region string) (string, error) {
-	elbService := elb.New(&aws.Config{Region: aws.String(region)})
+	elbService := elb.New(session.New(), &aws.Config{Region: aws.String(region)})
 	elbs, err := elbService.DescribeLoadBalancers(&elb.DescribeLoadBalancersInput{
 		LoadBalancerNames: []*string{
 			aws.String(cockroachELBName),
@@ -68,7 +69,7 @@ func FindCockroachELB(region string) (string, error) {
 // thresholds: unhealthy:2, heathy:10
 // TODO(marc): we should call ConfigureHealthCheck
 func CreateCockroachELB(region string, cockroachPort int64, zone string, securityGroupID string) (string, error) {
-	elbService := elb.New(&aws.Config{Region: aws.String(region)})
+	elbService := elb.New(session.New(), &aws.Config{Region: aws.String(region)})
 	resp, err := elbService.CreateLoadBalancer(&elb.CreateLoadBalancerInput{
 		LoadBalancerName: aws.String(cockroachELBName),
 		SecurityGroups:   []*string{aws.String(securityGroupID)},
@@ -115,7 +116,7 @@ func FindOrCreateLoadBalancer(region string, cockroachPort int64, zone string,
 // AddNodeToELB adds the specified node to the cockroach load balancer.
 // This can only succeed if the cockroach ELB exists.
 func AddNodeToELB(region string, instanceID string) error {
-	elbService := elb.New(&aws.Config{Region: aws.String(region)})
+	elbService := elb.New(session.New(), &aws.Config{Region: aws.String(region)})
 	_, err := elbService.RegisterInstancesWithLoadBalancer(&elb.RegisterInstancesWithLoadBalancerInput{
 		LoadBalancerName: aws.String(cockroachELBName),
 		Instances:        []*elb.Instance{{InstanceId: aws.String(instanceID)}},
@@ -126,7 +127,7 @@ func AddNodeToELB(region string, instanceID string) error {
 // RemoveNodeFromELB removes the specified node from the cockroach load balancer.
 // This can only succeed if the cockroach ELB exists.
 func RemoveNodeFromELB(region string, instanceID string) error {
-	elbService := elb.New(&aws.Config{Region: aws.String(region)})
+	elbService := elb.New(session.New(), &aws.Config{Region: aws.String(region)})
 	_, err := elbService.DeregisterInstancesFromLoadBalancer(&elb.DeregisterInstancesFromLoadBalancerInput{
 		LoadBalancerName: aws.String(cockroachELBName),
 		Instances:        []*elb.Instance{{InstanceId: aws.String(instanceID)}},

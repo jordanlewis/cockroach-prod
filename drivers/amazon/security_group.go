@@ -19,6 +19,7 @@ package amazon
 
 import (
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/cockroachdb/cockroach/util"
 )
@@ -35,7 +36,7 @@ const (
 // We needs its ID for other EC2 tasks (eg: create load balancer).
 // Not finding the security group is an error.
 func FindSecurityGroup(region string) (string, error) {
-	ec2Service := ec2.New(&aws.Config{Region: aws.String(region)})
+	ec2Service := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
 	resp, err := ec2Service.DescribeSecurityGroups(&ec2.DescribeSecurityGroupsInput{
 		GroupNames: []*string{aws.String(securityGroupName)},
 	})
@@ -56,7 +57,7 @@ func FindSecurityGroup(region string) (string, error) {
 // Duplicates are technically errors according to the AWS API, but we check for
 // the duplicate error code and return ok.
 func AddCockroachSecurityGroupIngress(region string, cockroachPort int64, securityGroupID string) error {
-	ec2Service := ec2.New(&aws.Config{Region: aws.String(region)})
+	ec2Service := ec2.New(session.New(), &aws.Config{Region: aws.String(region)})
 
 	_, err := ec2Service.AuthorizeSecurityGroupIngress(&ec2.AuthorizeSecurityGroupIngressInput{
 		CidrIp:     aws.String(allIPAddresses),

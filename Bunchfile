@@ -1,11 +1,11 @@
 github.com/cockroachdb/cockroach-prod !self
 github.com/aws/aws-sdk-go/aws
-github.com/aws/aws-sdk-go/internal/endpoints
-github.com/aws/aws-sdk-go/internal/protocol/ec2query
-github.com/aws/aws-sdk-go/internal/protocol/query
-github.com/aws/aws-sdk-go/internal/protocol/rest
-github.com/aws/aws-sdk-go/internal/protocol/xml/xmlutil
-github.com/aws/aws-sdk-go/internal/signer/v4
+github.com/aws/aws-sdk-go/private/endpoints
+github.com/aws/aws-sdk-go/private/protocol/ec2query
+github.com/aws/aws-sdk-go/private/protocol/query
+github.com/aws/aws-sdk-go/private/protocol/rest
+github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil
+github.com/aws/aws-sdk-go/private/signer/v4
 github.com/aws/aws-sdk-go/service/ec2
 github.com/aws/aws-sdk-go/service/elb
 github.com/biogo/store/interval
