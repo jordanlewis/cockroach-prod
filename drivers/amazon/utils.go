@@ -26,7 +26,7 @@ import (
 // loads from ENV, or from the .aws/credentials file.
 // Returns the key-id and secret-key.
 func LoadAWSCredentials() (string, string, error) {
-	creds, err := defaults.DefaultChainCredentials.Get()
+	creds, err := defaults.Get().Config.Credentials.Get()
 	if err != nil {
 		return "", "", err
 	}
