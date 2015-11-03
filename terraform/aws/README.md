@@ -167,6 +167,10 @@ Using either the ELB address (will hit a random node), or a specific instance:
 $ go tool pprof <address:port>/debug/pprof/profile
 ```
 
+#### Running examples against the cockroach cluster
+
+See `examples.tf` for sample examples and how to run them against the created cluster.
+
 ## Destroy the cluster
 
 ```
