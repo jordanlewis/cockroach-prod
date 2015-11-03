@@ -160,6 +160,13 @@ cockroach.WARNING
 
 ```
 
+#### Profile servers
+
+Using either the ELB address (will hit a random node), or a specific instance:
+```
+$ go tool pprof <address:port>/debug/pprof/profile
+```
+
 ## Destroy the cluster
 
 ```
