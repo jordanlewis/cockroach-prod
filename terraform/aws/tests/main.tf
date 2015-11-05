@@ -6,14 +6,15 @@
 #
 # Run with:
 # terraform apply --var=aws_access_key="${AWS_ACCESS_KEY}" \
-#                 --var=aws_secret_key="${AWS_SECRET_KEY}" \
-#                 --var=sql_logic_instances=1
+#                 --var=aws_secret_key="${AWS_SECRET_KEY}"
+#
 # Tear down AWS resources using:
 # terraform destroy --var=aws_access_key="${AWS_ACCESS_KEY}" \
-#                   --var=aws_secret_key="${AWS_SECRET_KEY}" \
-#                   --var=sql_logic_instances=1
+#                   --var=aws_secret_key="${AWS_SECRET_KEY}"
 #
 # The used logic tests are tarred and gzipped before launching the instance.
+# Test are sharded by subdirectory (see variables.tf for details), with one
+# instance handling each subdirectory.
 #
 # Monitor the output of the tests by running:
 # $ ssh -i ~/.ssh/cockroach.pem ubuntu@<instance> tail -F test.STDOUT
@@ -30,7 +31,7 @@ output "instance" {
 
 resource "aws_instance" "sql_logic_test" {
     tags {
-      Name = "cockroach-sql-logic-test"
+      Name = "cockroach-sql-logic-test-${count.index}"
     }
     depends_on = ["null_resource.sql_tarball"]
 
@@ -39,7 +40,7 @@ resource "aws_instance" "sql_logic_test" {
     instance_type = "t1.micro"
     security_groups = ["${aws_security_group.default.name}"]
     key_name = "${var.key_name}"
-    count = "${var.sql_logic_instances}"
+    count = "${length(split(",", var.sql_logic_subdirectories))}"
 
     connection {
       user = "ubuntu"
@@ -52,7 +53,7 @@ resource "aws_instance" "sql_logic_test" {
     }
 
     provisioner "file" {
-        source = "sqltests.tgz"
+        source = "tarball${count.index}.tgz"
         destination = "/home/ubuntu/sqltests.tgz"
     }
 
@@ -67,25 +68,26 @@ resource "aws_instance" "sql_logic_test" {
 }
 
 resource "null_resource" "sql_tarball" {
+    count = "${length(split(",", var.sql_logic_subdirectories))}"
     provisioner "local-exec" {
-        command = "tar cfz sqltests.tgz -C ${var.sqllogictest_repo} test/index/between test/index/commute test/index/delete test/index/in test/index/orderby test/index/orderby_nosort"
+        command = "tar cfz tarball${count.index}.tgz -C ${var.sqllogictest_repo} ${element(split(",", var.sql_logic_subdirectories),count.index)}"
     }
 }
 
 resource "aws_security_group" "default" {
-  name = "sqltest_security_group"
+    name = "sqltest_security_group"
 
-  ingress {
-    from_port = 22
-    to_port = 22
-    protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+    ingress {
+        from_port = 22
+        to_port = 22
+        protocol = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
 
-  egress {
-    from_port = 0
-    to_port = 0
-    protocol = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+    egress {
+        from_port = 0
+        to_port = 0
+        protocol = "-1"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
 }
