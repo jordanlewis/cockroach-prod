@@ -21,11 +21,6 @@ resource "aws_instance" "cockroach" {
     }
 
     provisioner "file" {
-        source = "${var.cockroach_binary}"
-        destination = "/home/ubuntu/cockroach"
-    }
-
-    provisioner "file" {
         source = "launch.sh"
         destination = "/home/ubuntu/launch.sh"
     }

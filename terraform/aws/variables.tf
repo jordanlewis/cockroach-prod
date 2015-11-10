@@ -30,11 +30,6 @@ variable "aws_ami_id" {
   default = "ami-408c7f28"
 }
 
-# Path to the cockroach binary.
-variable "cockroach_binary" {
-  default = "../../../cockroach/cockroach"
-}
-
 # Name of the ssh key pair for this AWS region. Your .pem file must be:
 # ~/.ssh/<key_name>.pem
 variable "key_name" {

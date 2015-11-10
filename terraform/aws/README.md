@@ -10,7 +10,6 @@ The following steps will create a three node cluster.
 2. [Download terraform](https://terraform.io/downloads.html), *version 0.6.6 or greater*, unzip, and add to your `PATH`.
 3. [Find your AWS credentials](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html#cli-signup). Save them as environment variables `AWS_ACCESS_KEY` and `AWS_SECRET_KEY`.
 4. [Create an AWS keypair](https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#KeyPairs:sort=keyName) named `cockroach` and save the file as `~/.ssh/cockroach.pem`.
-5. Check out the [Cockroach repository](https://github.com/cockroachdb/cockroach) and build the cockroach binary. It must be located at `~/cockroach/src/github.com/cockroachdb/cockroach/cockroach` (adjust `cockroach_binary` in `variables.tf` otherwise).
 
 ## Variables
 
@@ -19,7 +18,6 @@ The following variables can be modified in `variables.tf` if necessary.
 * `aws_region`: region to run in. Affects `aws_availability_zone` and `aws_ami_id`
 * `aws_availability_zone`: availability zone for instances and load balancer
 * `aws_ami_id`: image ID. depends on the region.
-* `cockroach_binary`: path to the cockroach binary
 * `key_name`: base name of the AWS key
 * `action`: default action. Defaults to `start`. Override is specified in initialization step
 

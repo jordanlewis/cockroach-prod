@@ -8,6 +8,19 @@
 # ./launch start [gossip flag value]
 set -ex
 
+# Lookup name of latest cockroach binary.
+BUCKET_PATH="cockroachdb/bin"
+LATEST="LATEST"
+binary_name=$(curl https://s3.amazonaws.com/${BUCKET_PATH}/${LATEST})
+if [ -z "${binary_name}" ]; then
+  echo "Could not fetch latest cockroach binary"
+fi
+
+# Fetch binary and symlink.
+time curl -O https://s3.amazonaws.com/${BUCKET_PATH}/${binary_name}
+chmod 755 ${binary_name}
+ln -s -f ${binary_name} cockroach
+
 DATA_DIR="data"
 LOG_DIR="logs"
 STORES="ssd=${DATA_DIR}"
@@ -26,7 +39,6 @@ if [ -z "${gossip}" ]; then
   exit 1
 fi
 
-chmod 755 cockroach
 mkdir -p ${DATA_DIR} ${LOG_DIR}
 
 if [ "${action}" == "init" ]; then

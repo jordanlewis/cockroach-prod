@@ -29,7 +29,6 @@
     "golang.org/x/tools/cmd/goimports": "823804e1ae08dbb14eb807afc7db9993bc9e3cc3",
     "google.golang.org/api/compute/v1": "c83ee8e9b7e6c40a486c0992a963ea8b6911de67",
     "google.golang.org/api/googleapi": "c83ee8e9b7e6c40a486c0992a963ea8b6911de67",
-    "google.golang.org/api/internal": "c83ee8e9b7e6c40a486c0992a963ea8b6911de67",
     "google.golang.org/api/resourceviews/v1beta2": "c83ee8e9b7e6c40a486c0992a963ea8b6911de67",
     "gopkg.in/yaml.v1": "9f9df34309c04878acc86042b16630b0f696e1de"
 }
