@@ -1,11 +1,6 @@
 variable "aws_access_key" {}
 variable "aws_secret_key" {}
 
-# Path to the cockroach repository.
-variable "cockroach_repo" {
-  default = "../../../../cockroach"
-}
-
 # Path to the sqllogictest repository.
 variable "sqllogictest_repo" {
   default = "../../../../sqllogictest"
@@ -27,8 +22,14 @@ variable "aws_availability_zone" {
 }
 
 # AWS image ID. The default is valid for region "us-east-1".
+# This is an ubuntu image with HVM.
 variable "aws_ami_id" {
-  default = "ami-408c7f28"
+  default = "ami-1c552a76"
+}
+
+# AWS instance type. This may affect valid AMIs.
+variable "aws_instance_type" {
+  default = "t2.medium"
 }
 
 # Name of the ssh key pair for this AWS region. Your .pem file must be:

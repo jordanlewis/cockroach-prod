@@ -1,7 +1,6 @@
 # Run the sql logic test suite on AWS.
 # Prerequisites:
 # - AWS account credentials and key as specified in cockroach-prod/terraform/aws/README.md
-# - linux binary: cockroach/sql/sql.test
 # - sqllogic test repo cloned
 #
 # Run with:
@@ -15,6 +14,7 @@
 # The used logic tests are tarred and gzipped before launching the instance.
 # Test are sharded by subdirectory (see variables.tf for details), with one
 # instance handling each subdirectory.
+# The latest sql.test binary is fetched from S3.
 #
 # Monitor the output of the tests by running:
 # $ ssh -i ~/.ssh/cockroach.pem ubuntu@<instance> tail -F test.STDOUT
@@ -37,7 +37,7 @@ resource "aws_instance" "sql_logic_test" {
 
     ami = "${var.aws_ami_id}"
     availability_zone = "${var.aws_availability_zone}"
-    instance_type = "t1.micro"
+    instance_type = "${var.aws_instance_type}"
     security_groups = ["${aws_security_group.default.name}"]
     key_name = "${var.key_name}"
     count = "${length(split(",", var.sql_logic_subdirectories))}"
@@ -48,8 +48,8 @@ resource "aws_instance" "sql_logic_test" {
     }
 
     provisioner "file" {
-        source = "${var.cockroach_repo}/sql/sql.test"
-        destination = "/home/ubuntu/sql.test"
+        source = "launch.sh"
+        destination = "/home/ubuntu/launch.sh"
     }
 
     provisioner "file" {
@@ -59,10 +59,10 @@ resource "aws_instance" "sql_logic_test" {
 
    provisioner "remote-exec" {
         inline = [
-          "chmod 755 sql.test",
+          "chmod 755 launch.sh",
           "tar xfz sqltests.tgz",
-          "nohup ./sql.test --test.run=TestLogic -d \"test/index/*/*/*.test\" 1>test.STDOUT 2>&1 &",
-          "sleep 5",
+          "./launch.sh",
+          "sleep 1",
         ]
    }
 }
