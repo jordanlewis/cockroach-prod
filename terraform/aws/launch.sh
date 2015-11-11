@@ -10,19 +10,22 @@ set -ex
 
 # Lookup name of latest cockroach binary.
 BUCKET_PATH="cockroachdb/bin"
-LATEST="LATEST"
-binary_name=$(curl https://s3.amazonaws.com/${BUCKET_PATH}/${LATEST})
+LATEST_SUFFIX=".LATEST"
+LOG_DIR="logs"
+
+BINARY="cockroach"
+
+binary_name=$(curl https://s3.amazonaws.com/${BUCKET_PATH}/${BINARY}${LATEST_SUFFIX})
 if [ -z "${binary_name}" ]; then
-  echo "Could not fetch latest cockroach binary"
+  echo "Could not fetch latest binary"
 fi
 
 # Fetch binary and symlink.
 time curl -O https://s3.amazonaws.com/${BUCKET_PATH}/${binary_name}
 chmod 755 ${binary_name}
-ln -s -f ${binary_name} cockroach
+ln -s -f ${binary_name} ${BINARY}
 
 DATA_DIR="data"
-LOG_DIR="logs"
 STORES="ssd=${DATA_DIR}"
 COMMON_FLAGS="--log-dir=${LOG_DIR} --logtostderr=false --stores=${STORES}"
 START_FLAGS="--insecure"

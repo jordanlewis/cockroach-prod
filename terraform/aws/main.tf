@@ -10,7 +10,7 @@ resource "aws_instance" "cockroach" {
     }
     ami = "${var.aws_ami_id}"
     availability_zone = "${var.aws_availability_zone}"
-    instance_type = "t1.micro"
+    instance_type = "${var.aws_instance_type}"
     security_groups = ["${aws_security_group.default.name}"]
     key_name = "${var.key_name}"
     count = "${var.num_instances}"
