@@ -1,6 +1,3 @@
-variable "aws_access_key" {}
-variable "aws_secret_key" {}
-
 # Path to the sqllogictest repository.
 variable "sqllogictest_repo" {
   default = "../../../../sqllogictest"

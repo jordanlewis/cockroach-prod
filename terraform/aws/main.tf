@@ -1,12 +1,10 @@
 provider "aws" {
-    access_key = "${var.aws_access_key}"
-    secret_key = "${var.aws_secret_key}"
     region = "${var.aws_region}"
 }
 
 resource "aws_instance" "cockroach" {
     tags {
-      Name = "${format("cockroach-%d", "${count.index}")}"
+        Name = "${format("cockroach-%d", "${count.index}")}"
     }
     ami = "${var.aws_ami_id}"
     availability_zone = "${var.aws_availability_zone}"
@@ -16,8 +14,8 @@ resource "aws_instance" "cockroach" {
     count = "${var.num_instances}"
 
     connection {
-      user = "ubuntu"
-      key_file = "~/.ssh/${var.key_name}.pem"
+        user = "ubuntu"
+        key_file = "~/.ssh/${var.key_name}.pem"
     }
 
     provisioner "file" {

@@ -1,15 +1,13 @@
 # Run the sql logic test suite on AWS.
 # Prerequisites:
-# - AWS account credentials and key as specified in cockroach-prod/terraform/aws/README.md
+# - AWS account credentials file as specified in cockroach-prod/terraform/aws/README.md
 # - sqllogic test repo cloned
 #
 # Run with:
-# terraform apply --var=aws_access_key="${AWS_ACCESS_KEY}" \
-#                 --var=aws_secret_key="${AWS_SECRET_KEY}"
+# $ terraform apply
 #
 # Tear down AWS resources using:
-# terraform destroy --var=aws_access_key="${AWS_ACCESS_KEY}" \
-#                   --var=aws_secret_key="${AWS_SECRET_KEY}"
+# $ terraform destroy
 #
 # The used logic tests are tarred and gzipped before launching the instance.
 # Test are sharded by subdirectory (see variables.tf for details), with one
@@ -20,18 +18,16 @@
 # $ ssh -i ~/.ssh/cockroach.pem ubuntu@<instance> tail -F test.STDOUT
 
 provider "aws" {
-    access_key = "${var.aws_access_key}"
-    secret_key = "${var.aws_secret_key}"
     region = "${var.aws_region}"
 }
 
 output "instance" {
-  value = "${join(",", aws_instance.sql_logic_test.*.public_dns)}"
+    value = "${join(",", aws_instance.sql_logic_test.*.public_dns)}"
 }
 
 resource "aws_instance" "sql_logic_test" {
     tags {
-      Name = "cockroach-sql-logic-test-${count.index}"
+        Name = "cockroach-sql-logic-test-${count.index}"
     }
     depends_on = ["null_resource.sql_tarball"]
 
