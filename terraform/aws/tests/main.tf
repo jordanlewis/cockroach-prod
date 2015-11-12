@@ -56,9 +56,11 @@ resource "aws_instance" "sql_logic_test" {
    provisioner "remote-exec" {
         inline = [
           "chmod 755 launch.sh",
+          "rm -rf logs",
+          "mkdir -p logs",
           "tar xfz sqltests.tgz",
-          "./launch.sh",
-          "sleep 1",
+          "nohup ./launch.sh > logs/nohup.out < /dev/null &",
+          "sleep 5",
         ]
    }
 }
