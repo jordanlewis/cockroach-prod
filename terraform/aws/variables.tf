@@ -1,6 +1,3 @@
-variable "aws_access_key" {}
-variable "aws_secret_key" {}
-
 # Value of the --gossip flag to pass to the backends.
 # This should be populated with the load balancer address.
 # Make sure to populate this before changing num_instances to greater than 0.

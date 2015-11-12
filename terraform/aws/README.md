@@ -8,7 +8,7 @@ The following steps will create a three node cluster.
 ## One-time setup steps
 1. Have an [AWS](http://aws.amazon.com/) account
 2. [Download terraform](https://terraform.io/downloads.html), *version 0.6.6 or greater*, unzip, and add to your `PATH`.
-3. [Find your AWS credentials](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html#cli-signup). Save them as environment variables `AWS_ACCESS_KEY` and `AWS_SECRET_KEY`.
+3. [Valid AWS credentials file](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html#cli-signup).
 4. [Create an AWS keypair](https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#KeyPairs:sort=keyName) named `cockroach` and save the file as `~/.ssh/cockroach.pem`.
 
 ## Variables
@@ -33,8 +33,6 @@ To see the actions expected to be performed by terraform, use `plan` instead of 
 
 ```
 $ terraform apply \
-    --var=aws_access_key="${AWS_ACCESS_KEY}" \
-    --var=aws_secret_key="${AWS_SECRET_KEY}" \
     --var=gossip=""                       \
     --var=num_instances=0
 
@@ -62,8 +60,6 @@ $ export ELB="elb-1289187553.us-east-1.elb.amazonaws.com:26257"
 
 ```
 $ terraform apply \
-    --var=aws_access_key="${AWS_ACCESS_KEY}" \
-    --var=aws_secret_key="${AWS_SECRET_KEY}" \
     --var=gossip="lb=${ELB}" \
     --var=num_instances=1                 \
     --var=action="init"
@@ -92,8 +88,6 @@ The cluster is now running with a single node and is reachable through the load 
 
 ```
 $ terraform apply \
-    --var=aws_access_key="${AWS_ACCESS_KEY}" \
-    --var=aws_secret_key="${AWS_SECRET_KEY}" \
     --var=gossip="lb=${ELB}" \
     --var=num_instances=3
 
@@ -173,8 +167,6 @@ See `examples.tf` for sample examples and how to run them against the created cl
 
 ```
 $ terraform destroy \
-    --var=aws_access_key="${AWS_ACCESS_KEY}" \
-    --var=aws_secret_key="${AWS_SECRET_KEY}" \
     --var=gossip="lb=${ELB}" \
     --var=num_instances=3
 ```

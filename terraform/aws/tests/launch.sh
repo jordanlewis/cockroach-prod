@@ -23,8 +23,7 @@ ln -s -f ${binary_name} ${BINARY}
 mkdir -p ${LOG_DIR}
 
 cmd="./${BINARY} ${FLAGS}"
-nohup ${cmd} > ${LOG_DIR}/${BINARY}.STDOUT 2> ${LOG_DIR}/${BINARY}.STDERR < /dev/null &
-pid=$!
-echo "Launched ${cmd}: pid=${pid}"
-# Sleep a bit to let the process start before we terminate the ssh connection.
-sleep 5
+time ${cmd} > ${LOG_DIR}/${BINARY}.STDOUT 2> ${LOG_DIR}/${BINARY}.STDERR < /dev/null
+# SECONDS is the time since the shell started. This is a good approximation for now,
+# more details are in the output.
+echo ${SECONDS} > ${LOG_DIR}/DONE
