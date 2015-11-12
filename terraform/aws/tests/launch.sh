@@ -6,9 +6,7 @@ set -ex
 BUCKET_PATH="cockroachdb/bin"
 LATEST_SUFFIX=".LATEST"
 LOG_DIR="logs"
-
 BINARY="sql.test"
-FLAGS="--test.run=TestLogic -d test/index/*/*/*.test"
 
 binary_name=$(curl https://s3.amazonaws.com/${BUCKET_PATH}/${BINARY}${LATEST_SUFFIX})
 if [ -z "${binary_name}" ]; then
@@ -22,8 +20,14 @@ ln -s -f ${binary_name} ${BINARY}
 
 mkdir -p ${LOG_DIR}
 
-cmd="./${BINARY} ${FLAGS}"
-time ${cmd} > ${LOG_DIR}/${BINARY}.STDOUT 2> ${LOG_DIR}/${BINARY}.STDERR < /dev/null
+# We ignore errors from here on. Failing tests are fine, and we still want
+# to create the DONE file.
+set +e
+
+time ./${BINARY} --test.run=TestLogic -d "test/index/*/*/*.test" > \
+  ${LOG_DIR}/${BINARY}.STDOUT 2> ${LOG_DIR}/${BINARY}.STDERR < /dev/null
+
 # SECONDS is the time since the shell started. This is a good approximation for now,
 # more details are in the output.
-echo ${SECONDS} > ${LOG_DIR}/DONE
+echo "time: ${SECONDS}" > ${LOG_DIR}/DONE
+echo "binary: ${binary_name}" >> ${LOG_DIR}/DONE
