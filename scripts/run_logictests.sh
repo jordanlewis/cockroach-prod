@@ -58,7 +58,7 @@ if [ $? -ne "0" ]; then
   exit 1
 fi
 
-run_timestamp=$(date  +"%Y%m%d-%H%M%S")
+run_timestamp=$(date  +"%Y-%m-%d-%H:%M:%S")
 cd "${PROD_REPO}/terraform/aws/tests"
 
 # Start the instances and work.
