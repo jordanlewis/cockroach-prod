@@ -162,6 +162,28 @@ $ go tool pprof <address:port>/debug/pprof/profile
 #### Running examples against the cockroach cluster
 
 See `examples.tf` for sample examples and how to run them against the created cluster.
+The `block_writer` can be run against the newly-created cluster by running:
+```
+$ terraform apply \
+    --var=gossip="lb=${ELB}" \
+    --var=num_instances=3    \
+    --var=example_block_writer_instances=1
+
+aws_security_group.default: Refreshing state... (ID: sg-151a7473)
+aws_instance.cockroach.0: Refreshing state... (ID: i-37ca4d87)
+aws_instance.cockroach.1: Refreshing state... (ID: i-b8d15608)
+aws_instance.cockroach.2: Refreshing state... (ID: i-5ed255ee)
+aws_elb.elb: Refreshing state... (ID: elb)
+aws_instance.example_block_writer: Creating...
+aws_instance.example_block_writer: Provisioning with 'file'...
+aws_instance.example_block_writer: Provisioning with 'remote-exec'...
+Outputs:
+  elb                  = elb-1693783722.us-east-1.elb.amazonaws.com
+  example_block_writer = ec2-54-175-206-76.compute-1.amazonaws.com
+  gossip_variable      = elb-1693783722.us-east-1.elb.amazonaws.com:26257
+  instances            = ec2-54-152-242-91.compute-1.amazonaws.com,ec2-54-152-233-87.compute-1.amazonaws.com,ec2-54-152-138-254.compute-1.amazonaws.com
+  port                 = 26257
+```
 
 ## Destroy the cluster
 

@@ -18,74 +18,80 @@
 # $ ssh -i ~/.ssh/cockroach.pem ubuntu@<instance> tail -F test.STDOUT
 
 provider "aws" {
-    region = "${var.aws_region}"
+  region = "${var.aws_region}"
 }
 
 output "instance" {
-    value = "${join(",", aws_instance.sql_logic_test.*.public_dns)}"
+  value = "${join(",", aws_instance.sql_logic_test.*.public_dns)}"
 }
 
 resource "aws_instance" "sql_logic_test" {
-    tags {
-        Name = "cockroach-sql-logic-test-${count.index}"
-    }
-    depends_on = ["null_resource.sql_tarball"]
+  tags {
+    Name = "cockroach-sql-logic-test-${count.index}"
+  }
+  depends_on = ["null_resource.sql_tarball"]
 
-    ami = "${var.aws_ami_id}"
-    availability_zone = "${var.aws_availability_zone}"
-    instance_type = "${var.aws_instance_type}"
-    security_groups = ["${aws_security_group.default.name}"]
-    key_name = "${var.key_name}"
-    count = "${length(split(",", var.sql_logic_subdirectories))}"
+  ami = "${var.aws_ami_id}"
+  availability_zone = "${var.aws_availability_zone}"
+  instance_type = "${var.aws_instance_type}"
+  security_groups = ["${aws_security_group.default.name}"]
+  key_name = "${var.key_name}"
+  count = "${length(split(",", var.sql_logic_subdirectories))}"
 
-    connection {
-      user = "ubuntu"
-      key_file = "~/.ssh/${var.key_name}.pem"
-    }
+  connection {
+    user = "ubuntu"
+    key_file = "~/.ssh/${var.key_name}.pem"
+  }
 
-    provisioner "file" {
-        source = "launch.sh"
-        destination = "/home/ubuntu/launch.sh"
-    }
+  provisioner "file" {
+    source = "launch.sh"
+    destination = "/home/ubuntu/launch.sh"
+  }
 
-    provisioner "file" {
-        source = "tarball${count.index}.tgz"
-        destination = "/home/ubuntu/sqltests.tgz"
-    }
+  provisioner "file" {
+    source = "../download_binary.sh"
+    destination = "/home/ubuntu/download_binary.sh"
+  }
 
-   provisioner "remote-exec" {
-        inline = [
-          "chmod 755 launch.sh",
-          "rm -rf logs",
-          "mkdir -p logs",
-          "tar xfz sqltests.tgz",
-          "nohup ./launch.sh > logs/nohup.out < /dev/null &",
-          "sleep 5",
-        ]
-   }
+  provisioner "file" {
+    source = "tarball${count.index}.tgz"
+    destination = "/home/ubuntu/sqltests.tgz"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "bash download_binary.sh sql.test",
+      "chmod 755 launch.sh",
+      "rm -rf logs",
+      "mkdir -p logs",
+      "tar xfz sqltests.tgz",
+      "nohup ./launch.sh > logs/nohup.out < /dev/null &",
+      "sleep 5",
+    ]
+  }
 }
 
 resource "null_resource" "sql_tarball" {
-    count = "${length(split(",", var.sql_logic_subdirectories))}"
-    provisioner "local-exec" {
-        command = "tar cfz tarball${count.index}.tgz -C ${var.sqllogictest_repo} ${element(split(",", var.sql_logic_subdirectories),count.index)}"
-    }
+  count = "${length(split(",", var.sql_logic_subdirectories))}"
+  provisioner "local-exec" {
+    command = "tar cfz tarball${count.index}.tgz -C ${var.sqllogictest_repo} ${element(split(",", var.sql_logic_subdirectories),count.index)}"
+  }
 }
 
 resource "aws_security_group" "default" {
-    name = "sqltest_security_group"
+  name = "sqltest_security_group"
 
-    ingress {
-        from_port = 22
-        to_port = 22
-        protocol = "tcp"
-        cidr_blocks = ["0.0.0.0/0"]
-    }
+  ingress {
+    from_port = 22
+    to_port = 22
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-    egress {
-        from_port = 0
-        to_port = 0
-        protocol = "-1"
-        cidr_blocks = ["0.0.0.0/0"]
-    }
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
