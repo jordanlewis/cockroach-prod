@@ -24,7 +24,7 @@ variable "aws_ami_id" {
 
 # AWS instance type. This may affect valid AMIs.
 variable "aws_instance_type" {
-  default = "t2.micro"
+  default = "t2.medium"
 }
 
 # Name of the ssh key pair for this AWS region. Your .pem file must be:

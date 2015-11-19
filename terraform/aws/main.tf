@@ -40,8 +40,11 @@ resource "null_resource" "cockroach-provisioner" {
     inline = [
       "bash download_binary.sh cockroach",
       "chmod 755 launch.sh",
-      "./launch.sh ${var.action} ${aws_elb.elb.dns_name}:${var.cockroach_port}",
-      "sleep 1",
+      "rm -rf logs",
+      "mkdir -p logs",
+      "ln -s -f /var/log/syslog logs/syslog",
+      "nohup ./launch.sh ${var.action} ${aws_elb.elb.dns_name}:${var.cockroach_port} > logs/nohup.out < /dev/null &",
+      "sleep 5",
     ]
   }
 }

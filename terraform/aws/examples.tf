@@ -38,7 +38,10 @@ resource "aws_instance" "example_block_writer" {
   provisioner "remote-exec" {
     inline = [
       "bash download_binary.sh block_writer",
-      "nohup ./block_writer http://${aws_elb.elb.dns_name}:${var.cockroach_port} > example.STDOUT 2>&1 &",
+      "rm -rf logs",
+      "mkdir -p logs",
+      "ln -s -f /var/log/syslog logs/syslog",
+      "nohup ./block_writer --tolerate-errors http://${aws_elb.elb.dns_name}:${var.cockroach_port} > logs/example.STDOUT 2> logs/example.STDERR &",
       "sleep 5",
     ]
   }
