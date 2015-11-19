@@ -38,7 +38,7 @@ resource "aws_instance" "example_block_writer" {
   provisioner "remote-exec" {
     inline = [
       "bash download_binary.sh block_writer",
-      "nohup ./block_writer --db-url=http://${aws_elb.elb.dns_name}:${var.cockroach_port} > example.STDOUT 2>&1 &",
+      "nohup ./block_writer http://${aws_elb.elb.dns_name}:${var.cockroach_port} > example.STDOUT 2>&1 &",
       "sleep 5",
     ]
   }
