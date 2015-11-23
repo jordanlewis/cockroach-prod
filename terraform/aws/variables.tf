@@ -1,9 +1,3 @@
-# Value of the --gossip flag to pass to the backends.
-# This should be populated with the load balancer address.
-# Make sure to populate this before changing num_instances to greater than 0.
-# eg: lb=elb-893485366.us-east-1.elb.amazonaws.com:26257
-variable "gossip" {}
-
 # Number of instances to start.
 variable "num_instances" {}
 
