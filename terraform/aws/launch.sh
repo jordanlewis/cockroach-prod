@@ -11,8 +11,9 @@ set -ex
 LOG_DIR="logs"
 DATA_DIR="data"
 STORES="ssd=${DATA_DIR}"
-COMMON_FLAGS="--log-dir=${LOG_DIR} --logtostderr=false --stores=${STORES}"
+COMMON_FLAGS="--log-dir=${LOG_DIR} --logtostderr=false --alsologtostderr=true --stores=${STORES}"
 START_FLAGS="--insecure"
+BINARY="cockroach"
 
 action=$1
 if [ "${action}" != "init" -a "${action}" != "start" ]; then
@@ -32,9 +33,13 @@ if [ "${action}" == "init" ]; then
   ./cockroach init ${COMMON_FLAGS}
 fi
 
-cmd="./cockroach start ${COMMON_FLAGS} ${START_FLAGS} --gossip=${gossip}"
-nohup ${cmd} > ${LOG_DIR}/cockroach.STDOUT 2> ${LOG_DIR}/cockroach.STDERR < /dev/null &
-pid=$!
-echo "Launched ${cmd}: pid=${pid}"
-# Sleep a bit to let the process start before we terminate the ssh connection.
-sleep 5
+# Find the target of the symlink. It contains the build sha.
+binary_name=$(readlink ${BINARY} || echo ${BINARY})
+
+# Ignore errors. We want to write the DONE file.
+./${BINARY} start ${COMMON_FLAGS} ${START_FLAGS} --gossip=${gossip} > \
+  ${LOG_DIR}/cockroach.STDOUT 2> ${LOG_DIR}/cockroach.STDERR || true
+
+# SECONDS is the time since the shell started. This is a good approximation for now.
+echo "time: ${SECONDS}" > ${LOG_DIR}/DONE
+echo "binary: ${binary_name}" >> ${LOG_DIR}/DONE
