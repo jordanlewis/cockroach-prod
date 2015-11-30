@@ -43,7 +43,7 @@ resource "null_resource" "cockroach-provisioner" {
       "rm -rf logs",
       "mkdir -p logs",
       "ln -s -f /var/log/syslog logs/syslog",
-      "nohup ./launch.sh ${var.action} ${aws_elb.elb.dns_name}:${var.cockroach_port} > logs/nohup.out < /dev/null &",
+      "nohup ./launch.sh ${var.action} lb=${aws_elb.elb.dns_name}:${var.cockroach_port} > logs/nohup.out < /dev/null &",
       "sleep 5",
     ]
   }
