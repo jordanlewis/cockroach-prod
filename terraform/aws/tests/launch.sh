@@ -6,12 +6,13 @@ set -x
 
 LOG_DIR="logs"
 BINARY="sql.test"
+TIMEOUT="2h"
 mkdir -p ${LOG_DIR}
 
 # Find the target of the symlink. It contains the build sha.
 binary_name=$(readlink ${BINARY} || echo ${BINARY})
 
-time ./${BINARY} --test.run=TestLogic -d "test/index/*/*/*.test" > \
+time ./${BINARY} --test.run=TestLogic --test.timeout="${TIMEOUT}" -d "test/index/*/*/*.test" > \
   ${LOG_DIR}/${BINARY}.STDOUT 2> ${LOG_DIR}/${BINARY}.STDERR < /dev/null
 
 # SECONDS is the time since the shell started. This is a good approximation for now,
