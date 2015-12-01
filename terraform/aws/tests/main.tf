@@ -44,8 +44,8 @@ resource "aws_instance" "sql_logic_test" {
   }
 
   provisioner "file" {
-    source = "launch.sh"
-    destination = "/home/ubuntu/launch.sh"
+    source = "supervisor.conf"
+    destination = "/home/ubuntu/supervisor.conf"
   }
 
   provisioner "file" {
@@ -60,13 +60,14 @@ resource "aws_instance" "sql_logic_test" {
 
   provisioner "remote-exec" {
     inline = [
+      "sudo apt-get -qqy update",
+      "sudo apt-get -qqy install supervisor",
+      "sudo service supervisor stop",
       "bash download_binary.sh sql.test",
-      "chmod 755 launch.sh",
-      "rm -rf logs",
       "mkdir -p logs",
       "tar xfz sqltests.tgz",
-      "nohup ./launch.sh > logs/nohup.out < /dev/null &",
-      "sleep 5",
+      "if [ ! -e supervisor.pid ]; then supervisord -c supervisor.conf; fi",
+      "supervisorctl -c supervisor.conf start sql.test",
     ]
   }
 }
@@ -84,6 +85,13 @@ resource "aws_security_group" "default" {
   ingress {
     from_port = 22
     to_port = 22
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port = "${var.supervisor_port}"
+    to_port = "${var.supervisor_port}"
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }

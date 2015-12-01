@@ -3,11 +3,13 @@
 This directory contains the [Terraform](https://terraform.io/) configuration
 files needed to launch a cockroach cluster on AWS.
 
-The following steps will create a three node cluster.
+Terraform stores the state of the cloud resources locally (in a file called `terraform.tfstate`),
+so this is meant to be used by a single user.
+For multi-user cooperation, please see [Terraform's documentation on remote state](https://terraform.io/docs/state/remote.html).
 
 ## One-time setup steps
 1. Have an [AWS](http://aws.amazon.com/) account
-2. [Download terraform](https://terraform.io/downloads.html), *version 0.6.6 or greater*, unzip, and add to your `PATH`.
+2. [Download terraform](https://terraform.io/downloads.html), *version 0.6.7 or greater*, unzip, and add to your `PATH`.
 3. [Valid AWS credentials file](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html#cli-signup).
 4. [Create an AWS keypair](https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#KeyPairs:sort=keyName) named `cockroach` and save the file as `~/.ssh/cockroach.pem`.
 
@@ -23,27 +25,13 @@ The following variables can be modified in `variables.tf` if necessary.
 
 ## Create the cluster
 
-The following two commands will initialize all needed AWS infrastructure in the region `us-east-1`,
+The following command will initialize all needed AWS infrastructure in the region `us-east-1`,
 initialize the first cockroach node, then add two more nodes to the cluster.
 All dynamic configuration is set through terraform command-line flags but can be set in `variables.tf`.
 
 To see the actions expected to be performed by terraform, use `plan` instead of `apply`.
 
-#### Initialize AWS infrastructure and first node
-
-```
-$ terraform apply --var=num_instances=1 --var=action="init"
-
-Outputs:
-  elb_address          = elb-1371418843.us-east-1.elb.amazonaws.com:26257
-  example_block_writer =
-  instances            = ec2-54-152-252-37.compute-1.amazonaws.com
-```
-
-The `--var=action="init"` parameter causes the first node to be initialized for a new cluster.
-The cluster is now running with a single node and is reachable through the `elb_address` (see `Using the cluster`).
-
-#### Add more nodes to the cluster
+#### Create a cockroach cluster with 3 nodes
 
 ```
 $ terraform apply --var=num_instances=3
@@ -51,8 +39,12 @@ $ terraform apply --var=num_instances=3
 Outputs:
   elb_address          = elb-1371418843.us-east-1.elb.amazonaws.com:26257
   example_block_writer =
-  instances            = ec2-54-152-252-37.compute-1.amazonaws.com,ec2-54-175-103-126.compute-1.amazonaws.com,ec2-54-175-166-150.compute-1.amazonaws.com
+  instances            = ec2-54-152-252-37.compute-1.amazonaws.com
 ```
+
+The cluster is now running with three nodes and is reachable through the `elb_address` (see `Using the cluster`).
+
+To add more nodes, simply rerun the command with `--var=num_instances` set to a different number.
 
 ## Use the cluster
 

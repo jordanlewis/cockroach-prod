@@ -8,6 +8,11 @@ variable "sql_logic_subdirectories" {
   default = "test/index/between,test/index/commute,test/index/delete,test/index/in,test/index/orderby,test/index/orderby_nosort"
 }
 
+# Port used by supervisord.
+variable "supervisor_port" {
+  default = "9001"
+}
+
 # AWS region to use. WARNING: changing this will break the AMI ID.
 variable "aws_region" {
   default = "us-east-1"
@@ -26,7 +31,7 @@ variable "aws_ami_id" {
 
 # AWS instance type. This may affect valid AMIs.
 variable "aws_instance_type" {
-  default = "t2.medium"
+  default = "c4.xlarge"
 }
 
 # Name of the ssh key pair for this AWS region. Your .pem file must be:
