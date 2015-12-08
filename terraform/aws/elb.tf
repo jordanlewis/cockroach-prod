@@ -1,6 +1,5 @@
 resource "aws_elb" "elb" {
-  name = "elb"
-
+  name = "${var.key_name}-elb"
   security_groups = ["${aws_security_group.default.id}"]
   availability_zones = [ "${var.aws_availability_zone}" ]
   listener {

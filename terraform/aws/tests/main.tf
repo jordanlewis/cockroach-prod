@@ -27,7 +27,7 @@ output "instance" {
 
 resource "aws_instance" "sql_logic_test" {
   tags {
-    Name = "cockroach-sql-logic-test-${count.index}"
+    Name = "${var.key_name}-sql-logic-test-${count.index}"
   }
   depends_on = ["null_resource.sql_tarball"]
 
@@ -80,7 +80,7 @@ resource "null_resource" "sql_tarball" {
 }
 
 resource "aws_security_group" "default" {
-  name = "sqltest_security_group"
+  name = "${var.key_name}-sqltest-security-group"
 
   ingress {
     from_port = 22

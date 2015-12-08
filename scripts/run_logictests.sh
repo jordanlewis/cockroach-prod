@@ -16,6 +16,7 @@
 # * <COCKROACH_BASE>/sqllogictest repo cloned and up to date
 # * <COCKROACH_BASE>/cockroach-prod repo cloned and up to date
 # * <COCKROACH_BASE>/cockroach-prod/tools/supervisor/supervisor tool compiled
+# * EC2 keypair under ~/.ssh/cockroach-${USER}.pem
 #
 # This script retries various operations quite a bit, but without
 # a limit on the number of retries. This may cause issues.
@@ -37,7 +38,8 @@ COCKROACH_BASE="${GOPATH}/src/github.com/cockroachdb"
 SQLTEST_REPO="${COCKROACH_BASE}/sqllogictest"
 PROD_REPO="${COCKROACH_BASE}/cockroach-prod"
 LOGS_DIR=$1
-SSH_KEY=~/.ssh/cockroach.pem
+KEY_NAME="cockroach-${USER}"
+SSH_KEY="~/.ssh/${KEY_NAME}.pem"
 SSH_USER="ubuntu"
 
 if [ -z "${LOGS_DIR}" ]; then
@@ -71,7 +73,7 @@ run_timestamp=$(date  +"%Y-%m-%d-%H:%M:%S")
 cd "${PROD_REPO}/terraform/aws/tests"
 
 # Start the instances and work.
-do_retry "terraform apply" 5 5
+do_retry "terraform apply --var=key_name=${KEY_NAME}" 5 5
 if [ $? -ne 0 ]; then
   echo "Terraform apply failed."
   return 1
@@ -98,7 +100,7 @@ for i in ${instances}; do
 done
 
 # Destroy all instances.
-do_retry "terraform destroy --force" 5 5
+do_retry "terraform destroy --var=key_name=${KEY_NAME} --force" 5 5
 if [ $? -ne 0 ]; then
   echo "Terraform destroy failed."
   return 1
