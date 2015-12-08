@@ -6,6 +6,11 @@ variable "cockroach_port" {
   default = "26257"
 }
 
+# Port used by supervisord.
+variable "supervisor_port" {
+  default = "9001"
+}
+
 # AWS region to use. WARNING: changing this will break the AMI ID.
 variable "aws_region" {
   default = "us-east-1"
@@ -31,10 +36,4 @@ variable "aws_instance_type" {
 # ~/.ssh/<key_name>.pem
 variable "key_name" {
   default = "cockroach"
-}
-
-# Action is one of "init" or "start". init should only be specified when
-# running `terraform apply` on the first node.
-variable "action" {
-  default = "start"
 }

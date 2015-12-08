@@ -35,14 +35,23 @@ resource "aws_instance" "example_block_writer" {
     destination = "/home/ubuntu/download_binary.sh"
   }
 
+  # This writes the filled-in supervisor template. It would be nice if we could
+  # use rendered templates in the file provisioner.
+  provisioner "remote-exec" {
+    inline = <<FILE
+echo '${template_file.supervisor.rendered}' > supervisor.conf
+FILE
+  }
+
   provisioner "remote-exec" {
     inline = [
+      "sudo apt-get -qqy update",
+      "sudo apt-get -qqy install supervisor",
+      "sudo service supervisor stop",
       "bash download_binary.sh block_writer",
-      "rm -rf logs",
       "mkdir -p logs",
-      "ln -s -f /var/log/syslog logs/syslog",
-      "nohup ./block_writer --tolerate-errors http://${aws_elb.elb.dns_name}:${var.cockroach_port} > logs/example.STDOUT 2> logs/example.STDERR &",
-      "sleep 5",
+      "if [ ! -e supervisor.pid ]; then supervisord -c supervisor.conf; fi",
+      "supervisorctl -c supervisor.conf start block_writer",
     ]
   }
 }

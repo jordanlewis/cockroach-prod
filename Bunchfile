@@ -16,6 +16,7 @@ github.com/cpuguy83/go-md2man/md2man
 github.com/ghemawat/stream
 github.com/gogo/protobuf/proto
 github.com/inconshreveable/mousetrap
+github.com/kolo/xmlrpc
 github.com/russross/blackfriday
 github.com/shurcooL/sanitized_anchor_name
 github.com/spf13/cobra
