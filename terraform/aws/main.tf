@@ -4,7 +4,7 @@ provider "aws" {
 
 resource "aws_instance" "cockroach" {
   tags {
-    Name = "${format("cockroach-%d", "${count.index}")}"
+    Name = "${var.key_name}-${count.index}"
   }
   ami = "${var.aws_ami_id}"
   availability_zone = "${var.aws_availability_zone}"

@@ -1,6 +1,5 @@
 resource "aws_security_group" "default" {
-  name = "cockroach_security_group"
-
+  name = "${var.key_name}-security-group"
   ingress {
     from_port = 22
     to_port = 22

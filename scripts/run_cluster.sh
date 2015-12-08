@@ -20,6 +20,7 @@
 # * terraform installed in your PATH
 # * <COCKROACH_BASE>/cockroach-prod repo cloned and up to date
 # * <COCKROACH_BASE>/cockroach-prod/tools/supervisor/supervisor tool compiled
+# * EC2 keypair under ~/.ssh/cockroach-${USER}.pem
 #
 # This script retries various operations quite a bit, but without
 # a limit on the number of retries. This may cause issues.
@@ -40,7 +41,8 @@ source $(dirname $0)/utils.sh
 COCKROACH_BASE="${GOPATH}/src/github.com/cockroachdb"
 PROD_REPO="${COCKROACH_BASE}/cockroach-prod"
 LOGS_DIR=$1
-SSH_KEY=~/.ssh/cockroach.pem
+KEY_NAME="cockroach-${USER}"
+SSH_KEY="~/.ssh/${KEY_NAME}.pem"
 SSH_USER="ubuntu"
 TOTAL_INSTANCES=5
 WAIT_TIME=3600
@@ -72,7 +74,7 @@ cd "${PROD_REPO}/terraform/aws"
 
 # Initialize infrastructure and first instance.
 # We loop to retry instances that take too long to setup (it seems to happen).
-do_retry "terraform apply --var=num_instances=${TOTAL_INSTANCES}" 5 5
+do_retry "terraform apply --var=key_name=${KEY_NAME} --var=num_instances=${TOTAL_INSTANCES}" 5 5
 if [ $? -ne 0 ]; then
   echo "Terraform apply failed."
   return 1
@@ -83,7 +85,7 @@ instances=$(terraform output instances|tr ',' ' ')
 supervisor_hosts=$(echo ${instances}|fmt -1|awk '{print $1 ":9001"}'|xargs|tr ' ' ',')
 
 # Start the block_writer.
-do_retry "terraform apply --var=num_instances=${TOTAL_INSTANCES} --var=example_block_writer_instances=1" 5 5
+do_retry "terraform apply --var=key_name=${KEY_NAME} --var=num_instances=${TOTAL_INSTANCES} --var=example_block_writer_instances=1" 5 5
 if [ $? -ne 0 ]; then
   echo "Terraform apply failed."
   return 1
@@ -114,7 +116,7 @@ scp -C -i ${SSH_KEY} -r -oStrictHostKeyChecking=no ${SSH_USER}@${block_writer_in
 ssh -i ${SSH_KEY} -oStrictHostKeyChecking=no ${SSH_USER}@${block_writer_instance} readlink block_writer > "${LOGS_DIR}/${run_timestamp}/block_writer.${block_writer_instance}/BINARY"
 
 # Destroy all instances.
-do_retry "terraform destroy --force --var=num_instances=${TOTAL_INSTANCES}" 5 5
+do_retry "terraform destroy --force --var=key_name=${KEY_NAME} --var=num_instances=${TOTAL_INSTANCES}" 5 5
 
 # Send email.
 if [ -z "${MAILTO}" ]; then

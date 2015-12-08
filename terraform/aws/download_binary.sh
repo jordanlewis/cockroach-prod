@@ -22,7 +22,7 @@
 set -ex
 
 # Lookup name of latest binary.
-BUCKET_PATH="cockroachdb/bin"
+BUCKET_PATH="cockroach/bin"
 LATEST_SUFFIX=".LATEST"
 
 binary_name=$1

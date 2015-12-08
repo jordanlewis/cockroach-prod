@@ -15,7 +15,7 @@ output "example_block_writer" {
 
 resource "aws_instance" "example_block_writer" {
   tags {
-    Name = "example-block-writer"
+    Name = "${var.key_name}-block-writer"
   }
 
   ami = "${var.aws_ami_id}"
