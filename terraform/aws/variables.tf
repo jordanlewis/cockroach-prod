@@ -18,7 +18,7 @@ variable "aws_region" {
 
 # AWS availability zone. Make sure it exists for your account.
 variable "aws_availability_zone" {
-  default = "us-east-1a"
+  default = "us-east-1b"
 }
 
 # AWS image ID. The default is valid for region "us-east-1".
