@@ -11,16 +11,20 @@ For multi-user cooperation, please see [Terraform's documentation on remote stat
 1. Have an [AWS](http://aws.amazon.com/) account
 2. [Download terraform](https://terraform.io/downloads.html), *version 0.6.7 or greater*, unzip, and add to your `PATH`.
 3. [Valid AWS credentials file](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-set-up.html#cli-signup).
-4. [Create an AWS keypair](https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#KeyPairs:sort=keyName) named `cockroach` and save the file as `~/.ssh/cockroach.pem`.
+4. [Create an AWS keypair](https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#KeyPairs:sort=keyName) named `cockroach` and save the file as `~/.ssh/cockroach.pem`. If sharing an account with other users, you may want to customize the key name (eg: `cockroach-<myusername>`) and modify the variable as mentioned in the next section.
 
 ## Variables
 
-The following variables can be modified in `variables.tf` if necessary.
+Some configuration can be performed through the use of variables in `variables.tf`.
+
+The following variables are likely to change based on your account or setup:
+* `aws_availability_zone`: availability zone for instances and load balancer
+* `key_name`: base name of the AWS key
+
+The following variables can be modified if necessary.
 * `cockroach_port`: the port for the backends and load balancer
 * `aws_region`: region to run in. Affects `aws_availability_zone` and `aws_ami_id`
-* `aws_availability_zone`: availability zone for instances and load balancer
 * `aws_ami_id`: image ID. depends on the region.
-* `key_name`: base name of the AWS key
 * `action`: default action. Defaults to `start`. Override is specified in initialization step
 
 ## Create the cluster
