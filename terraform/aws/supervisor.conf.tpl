@@ -28,7 +28,7 @@ autostart=false
 autorestart=false
 startsecs=2
 startretries=0
-stopwaitsecs=60
+stopwaitsecs=90
 stderr_logfile=%(here)s/logs/%(program_name)s.stderr
 stdout_logfile=%(here)s/logs/%(program_name)s.stdout
 
