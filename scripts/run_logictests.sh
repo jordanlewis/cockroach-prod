@@ -116,8 +116,8 @@ cd "${LOGS_DIR}/${run_timestamp}"
 attach_args="--content-type=text/plain"
 binary=$(cat */BINARY|sort|uniq|xargs)
 for i in ${instances}; do
-  ln -s ${i}/sql.test.stdout ${i}.stdout
-  ln -s ${i}/sql.test.stderr ${i}.stderr
+  tail -n 10000 ${i}/sql.test.stdout > ${i}.stdout
+  tail -n 10000 ${i}/sql.test.stderr > ${i}.stderr
   attach_args="${attach_args} -A ${i}.stdout -A ${i}.stderr"
 done
 
