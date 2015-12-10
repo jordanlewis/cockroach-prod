@@ -34,6 +34,10 @@ resource "null_resource" "cockroach-runner" {
     host = "${element(aws_instance.cockroach.*.public_ip, count.index)}"
   }
 
+  triggers {
+    instance_ids = "${element(aws_instance.cockroach.*.id, count.index)}"
+  }
+
   provisioner "file" {
     source = "download_binary.sh"
     destination = "/home/ubuntu/download_binary.sh"
