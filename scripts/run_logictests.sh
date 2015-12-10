@@ -41,6 +41,7 @@ LOGS_DIR=$1
 KEY_NAME="cockroach-${USER}"
 SSH_KEY="~/.ssh/${KEY_NAME}.pem"
 SSH_USER="ubuntu"
+BINARY_PATH="cockroach/sql.test"
 
 if [ -z "${LOGS_DIR}" ]; then
   echo "No logs directory specified. Run with: $0 [logs dir]"
@@ -69,11 +70,13 @@ if [ ! -e "${monitor}" ]; then
   exit 1
 fi
 
+sqllogictest_sha=$(latest_sha ${BINARY_PATH})
+
 run_timestamp=$(date  +"%Y-%m-%d-%H:%M:%S")
 cd "${PROD_REPO}/terraform/aws/tests"
 
 # Start the instances and work.
-do_retry "terraform apply --var=key_name=${KEY_NAME}" 5 5
+do_retry "terraform apply --var=key_name=${KEY_NAME} --var=sqllogictest_sha=${sqllogictest_sha}" 5 5
 if [ $? -ne 0 ]; then
   echo "Terraform apply failed."
   return 1
@@ -96,7 +99,6 @@ for i in ${instances}; do
   if [ $? -ne 0 ]; then
     echo "Failed to fetch logs from ${i}"
   fi
-  ssh -i ${SSH_KEY} -oStrictHostKeyChecking=no ${SSH_USER}@${i} readlink sql.test > "${LOGS_DIR}/${run_timestamp}/${i}/BINARY"
 done
 
 # Destroy all instances.
@@ -114,14 +116,13 @@ fi
 
 cd "${LOGS_DIR}/${run_timestamp}"
 attach_args="--content-type=text/plain"
-binary=$(cat */BINARY|sort|uniq|xargs)
 for i in ${instances}; do
   tail -n 10000 ${i}/sql.test.stdout > ${i}.stdout
   tail -n 10000 ${i}/sql.test.stderr > ${i}.stderr
   attach_args="${attach_args} -A ${i}.stdout -A ${i}.stderr"
 done
 
-echo "Binary: ${binary}" > summary.txt
+binary_sha_link ${BINARY_PATH} ${sqllogictest_sha} > summary.txt
 echo "" >> summary.txt
 echo "${summary}" >> summary.txt
 mail ${attach_args} -s "SQL logic test ${status} ${run_timestamp}" ${MAILTO} < summary.txt

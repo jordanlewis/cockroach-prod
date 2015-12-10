@@ -56,7 +56,7 @@ FILE
       "sudo apt-get -qqy update",
       "sudo apt-get -qqy install supervisor",
       "sudo service supervisor stop",
-      "bash download_binary.sh cockroach",
+      "bash download_binary.sh cockroach/cockroach ${var.cockroach_sha}",
       "mkdir -p logs",
       "if [ ! -e supervisor.pid ]; then supervisord -c supervisor.conf; fi",
       "supervisorctl -c supervisor.conf start cockroach",
@@ -81,7 +81,7 @@ resource "null_resource" "cockroach-initializer" {
 
   provisioner "remote-exec" {
     inline = [
-      "bash download_binary.sh cockroach",
+      "bash download_binary.sh cockroach/cockroach ${var.cockroach_sha}",
       "mkdir -p logs",
       "./cockroach init --logtostderr=true --stores=sdd=data",
     ]

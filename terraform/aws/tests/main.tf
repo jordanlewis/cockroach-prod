@@ -36,7 +36,7 @@ resource "aws_instance" "sql_logic_test" {
   instance_type = "${var.aws_instance_type}"
   security_groups = ["${aws_security_group.default.name}"]
   key_name = "${var.key_name}"
-  count = "${length(split(",", var.sql_logic_subdirectories))}"
+  count = "${length(split(",", var.sqllogictest_subdirectories))}"
 
   connection {
     user = "ubuntu"
@@ -63,7 +63,7 @@ resource "aws_instance" "sql_logic_test" {
       "sudo apt-get -qqy update",
       "sudo apt-get -qqy install supervisor",
       "sudo service supervisor stop",
-      "bash download_binary.sh sql.test",
+      "bash download_binary.sh cockroach/sql.test ${var.sqllogictest_sha}",
       "mkdir -p logs",
       "tar xfz sqltests.tgz",
       "if [ ! -e supervisor.pid ]; then supervisord -c supervisor.conf; fi",
@@ -73,9 +73,9 @@ resource "aws_instance" "sql_logic_test" {
 }
 
 resource "null_resource" "sql_tarball" {
-  count = "${length(split(",", var.sql_logic_subdirectories))}"
+  count = "${length(split(",", var.sqllogictest_subdirectories))}"
   provisioner "local-exec" {
-    command = "tar cfz tarball${count.index}.tgz -C ${var.sqllogictest_repo} ${element(split(",", var.sql_logic_subdirectories),count.index)}"
+    command = "tar cfz tarball${count.index}.tgz -C ${var.sqllogictest_repo} ${element(split(",", var.sqllogictest_subdirectories),count.index)}"
   }
 }
 

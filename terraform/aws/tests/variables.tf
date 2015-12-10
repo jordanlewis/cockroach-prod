@@ -4,8 +4,13 @@ variable "sqllogictest_repo" {
 }
 
 # The sql tests will be given the glob: 'subdir/*/*.test'
-variable "sql_logic_subdirectories" {
+variable "sqllogictest_subdirectories" {
   default = "test/index/between,test/index/commute,test/index/delete,test/index/in,test/index/orderby,test/index/orderby_nosort"
+}
+
+# Sha of the binary to pull down. If none, the latest is fetched.
+variable "sqllogictest_sha" {
+  default = ""
 }
 
 # Port used by supervisord.

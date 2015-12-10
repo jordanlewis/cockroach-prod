@@ -48,7 +48,7 @@ FILE
       "sudo apt-get -qqy update",
       "sudo apt-get -qqy install supervisor",
       "sudo service supervisor stop",
-      "bash download_binary.sh block_writer",
+      "bash download_binary.sh examples-go/block_writer ${var.block_writer_sha}",
       "mkdir -p logs",
       "if [ ! -e supervisor.pid ]; then supervisord -c supervisor.conf; fi",
       "supervisorctl -c supervisor.conf start block_writer",
