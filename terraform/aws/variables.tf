@@ -37,3 +37,13 @@ variable "aws_instance_type" {
 variable "key_name" {
   default = "cockroach"
 }
+
+# Sha of the cockroach binary to pull down. If none, the latest is fetched.
+variable "cockroach_sha" {
+  default = ""
+}
+
+# Sha of the block_writer binary to pull down. If none, the latest is fetched.
+variable "block_writer_sha" {
+  default = ""
+}

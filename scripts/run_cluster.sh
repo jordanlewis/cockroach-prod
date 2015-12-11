@@ -46,6 +46,8 @@ SSH_KEY="~/.ssh/${KEY_NAME}.pem"
 SSH_USER="ubuntu"
 TOTAL_INSTANCES=5
 WAIT_TIME=3600
+COCKROACH_BINARY_PATH="cockroach/cockroach"
+BLOCK_WRITER_BINARY_PATH="examples-go/block_writer"
 
 if [ -z "${LOGS_DIR}" ]; then
   echo "No logs directory specified. Run with: $0 [logs dir]"
@@ -69,12 +71,15 @@ if [ ! -e "${monitor}" ]; then
   exit 1
 fi
 
+cockroach_sha=$(latest_sha ${COCKROACH_BINARY_PATH})
+block_writer_sha=$(latest_sha ${BLOCK_WRITER_BINARY_PATH})
+
 run_timestamp=$(date  +"%Y-%m-%d-%H:%M:%S")
 cd "${PROD_REPO}/terraform/aws"
 
 # Initialize infrastructure and first instance.
 # We loop to retry instances that take too long to setup (it seems to happen).
-do_retry "terraform apply --var=key_name=${KEY_NAME} --var=num_instances=${TOTAL_INSTANCES}" 5 5
+do_retry "terraform apply --var=key_name=${KEY_NAME} --var=num_instances=${TOTAL_INSTANCES} --var=cockroach_sha=${cockroach_sha} --var=block_writer_sha=${block_writer_sha}" 5 5
 if [ $? -ne 0 ]; then
   echo "Terraform apply failed."
   return 1
@@ -85,7 +90,7 @@ instances=$(terraform output instances|tr ',' ' ')
 supervisor_hosts=$(echo ${instances}|fmt -1|awk '{print $1 ":9001"}'|xargs|tr ' ' ',')
 
 # Start the block_writer.
-do_retry "terraform apply --var=key_name=${KEY_NAME} --var=num_instances=${TOTAL_INSTANCES} --var=example_block_writer_instances=1" 5 5
+do_retry "terraform apply --var=key_name=${KEY_NAME} --var=num_instances=${TOTAL_INSTANCES} --var=example_block_writer_instances=1 --var=cockroach_sha=${cockroach_sha} --var=block_writer_sha=${block_writer_sha}" 5 5
 if [ $? -ne 0 ]; then
   echo "Terraform apply failed."
   return 1
@@ -109,11 +114,9 @@ for i in ${instances}; do
   if [ $? -ne 0 ]; then
     echo "Failed to fetch logs from ${i}"
   fi
-  ssh -i ${SSH_KEY} -oStrictHostKeyChecking=no ${SSH_USER}@${i} readlink cockroach > "${LOGS_DIR}/${run_timestamp}/node.${i}/BINARY"
 done
 
 scp -C -i ${SSH_KEY} -r -oStrictHostKeyChecking=no ${SSH_USER}@${block_writer_instance}:logs "${LOGS_DIR}/${run_timestamp}/block_writer.${block_writer_instance}"
-ssh -i ${SSH_KEY} -oStrictHostKeyChecking=no ${SSH_USER}@${block_writer_instance} readlink block_writer > "${LOGS_DIR}/${run_timestamp}/block_writer.${block_writer_instance}/BINARY"
 
 # Destroy all instances.
 do_retry "terraform destroy --force --var=key_name=${KEY_NAME} --var=num_instances=${TOTAL_INSTANCES}" 5 5
@@ -128,7 +131,6 @@ cd "${LOGS_DIR}/${run_timestamp}"
 
 # Generate message and attach logs for each instance.
 attach_args="--content-type=text/plain"
-node_binary=$(cat node.*/BINARY|sort|uniq|xargs)
 for i in ${instances}; do
   tail -n 10000 node.${i}/cockroach.stderr > node.${i}.stderr
   tail -n 10000 node.${i}/cockroach.stdout > node.${i}.stdout
@@ -136,14 +138,13 @@ for i in ${instances}; do
 done
 
 # Attach block writer logs.
-block_writer_binary=$(cat block_writer.*/BINARY|sort|uniq|xargs)
 tail -n 10000 block_writer.${block_writer_instance}/block_writer.stderr > block_writer.stderr
 tail -n 10000 block_writer.${block_writer_instance}/block_writer.stdout > block_writer.stdout
 attach_args="${attach_args} -A block_writer.stderr -A block_writer.stdout"
 
-echo "Binary: ${node_binary}" > summary.txt
+binary_sha_link ${COCKROACH_BINARY_PATH} ${cockroach_sha} > summary.txt
 echo "${summary_nodes}" >> summary.txt
 echo "" >> summary.txt
-echo "Binary: ${block_writer_binary}" >> summary.txt
+binary_sha_link ${BLOCK_WRITER_BINARY_PATH} ${block_writer_sha} >> summary.txt
 echo "${summary_block_writer}" >> summary.txt
 mail ${attach_args} -s "Cluster test ${run_timestamp}" ${MAILTO} < summary.txt
