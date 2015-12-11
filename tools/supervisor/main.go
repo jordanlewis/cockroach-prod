@@ -150,7 +150,7 @@ func main() {
 	for _, i := range instances {
 		fmt.Println(i.String())
 		if !i.success() {
-			exitCode += 1
+			exitCode++
 		}
 	}
 	os.Exit(exitCode)
