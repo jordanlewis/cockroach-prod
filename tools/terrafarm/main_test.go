@@ -39,6 +39,7 @@ var cwd = flag.String("cwd", func() string {
 }(), "directory to run terraform from")
 var keyName = flag.String("key-name", "cockroach", "name of key for cluster")
 var logDir = flag.String("l", "", "log dir (empty for temporary)")
+var duration = flag.Duration("d", 5*time.Minute, "duration for each test")
 
 func farmer(t *testing.T) *terrafarm.Farmer {
 	logDir := *logDir
@@ -73,17 +74,20 @@ func TestBuildCluster(t *testing.T) {
 // TestFiveNodesAndWriters runs a five node cluster and five writers.
 // The test runs until SIGINT is received (or the test times out).
 func TestFiveNodesAndWriters(t *testing.T) {
+	deadline := time.After(*duration)
 	f := farmer(t)
 	defer f.MustDestroy()
-	f.MustDestroy() // clean slate, just in case.
 	if err := f.Resize(5, 5); err != nil {
 		t.Fatal(err)
 	}
+
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	f.Assert(t)
 	for {
 		select {
+		case <-deadline:
+			return
 		case <-c:
 			return
 		case <-time.After(time.Minute):

@@ -43,11 +43,17 @@ func (f *Farmer) refresh() {
 
 // Nodes returns a (copied) slice of provisioned nodes' host names.
 func (f *Farmer) Nodes() (hosts []string) {
+	if len(f.nodes) == 0 {
+		f.refresh()
+	}
 	return append(hosts, f.nodes...)
 }
 
 // Writers returns a (copied) slice of provisioned block writers' host names.
 func (f *Farmer) Writers() (hosts []string) {
+	if len(f.writers)+len(f.nodes) == 0 {
+		f.refresh()
+	}
 	return append(hosts, f.writers...)
 }
 
@@ -98,18 +104,19 @@ func (f *Farmer) CollectLogs() {
 		return
 	}
 	hosts := append(f.Nodes(), f.Writers()...)
+	const src = "logs"
 	for i, host := range hosts {
-		for _, item := range []string{"logs"} {
-			dest := strconv.Itoa(i) + "_" + item
-			if i < f.NumNodes() {
-				dest = "node" + dest
-			} else {
-				dest = "writer" + dest
-			}
-			if err := f.scp(host, f.defaultKeyFile(), item,
-				filepath.Join(f.AbsLogDir(), dest)); err != nil {
-				fmt.Fprintf(os.Stderr, "error collecting %s from host %s: %s", item, host, err)
-			}
+		var dest string
+		if i < f.NumNodes() {
+			dest = "node." + dest
+		} else {
+			i -= f.NumNodes()
+			dest = "writer." + dest
+		}
+		dest += strconv.Itoa(i)
+		if err := f.scp(host, f.defaultKeyFile(), src,
+			filepath.Join(f.AbsLogDir(), dest)); err != nil {
+			fmt.Fprintf(os.Stderr, "error collecting %s from host %s: %s", src, host, err)
 		}
 	}
 }
@@ -161,7 +168,6 @@ func (f *Farmer) Assert(t util.Tester) {
 		{"block_writer", f.Writers()},
 	} {
 		for i, host := range item.hosts {
-			fmt.Println(item)
 			out, _, err := f.execSupervisor(host, "status "+item.typ)
 			if err != nil {
 				t.Fatal(err)
