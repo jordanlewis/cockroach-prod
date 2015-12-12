@@ -22,6 +22,8 @@ import (
 	"path/filepath"
 )
 
+const sshUser = "ubuntu"
+
 func (f *Farmer) defaultKeyFile() string {
 	base := "."
 	me, err := user.Current()
@@ -31,9 +33,21 @@ func (f *Farmer) defaultKeyFile() string {
 	return filepath.Join(base, ".ssh/"+f.KeyName+".pem")
 }
 
-func (f *Farmer) ssh(user, host, keyfile, cmd string) (stdout string, stderr string, _ error) {
+func (f *Farmer) ssh(host, keyfile, cmd string) (stdout string, stderr string, _ error) {
 	return f.run("ssh",
 		"-o", "StrictHostKeyChecking=no",
 		"-o", "UserKnownHostsFile=/dev/null",
-		"-q", "-i", keyfile, user+"@"+host, cmd)
+		"-q", "-i", keyfile, sshUser+"@"+host, cmd)
+}
+
+func (f *Farmer) scp(host, keyfile, src, dest string) error {
+	_, _, err := f.run("scp", "-r",
+		"-o", "StrictHostKeyChecking=no",
+		"-o", "UserKnownHostsFile=/dev/null",
+		"-q", "-i", keyfile,
+		sshUser+"@"+host+":"+src, dest)
+	if err != nil {
+		return err
+	}
+	return nil
 }

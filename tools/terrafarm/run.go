@@ -93,7 +93,7 @@ func (f *Farmer) apply(args ...string) error {
 	if err := f.runErr("terraform", args...); err != nil {
 		return err
 	}
-	f.Refresh()
+	f.refresh()
 	return nil
 }
 
