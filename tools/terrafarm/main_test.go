@@ -24,6 +24,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/cockroachdb/cockroach-prod/tools/terrafarm"
 )
@@ -66,6 +67,7 @@ func TestBuildCluster(t *testing.T) {
 	if err := f.Resize(1, 1); err != nil {
 		t.Fatal(err)
 	}
+	f.Assert(t)
 }
 
 // TestFiveNodesAndWriters runs a five node cluster and five writers.
@@ -73,10 +75,19 @@ func TestBuildCluster(t *testing.T) {
 func TestFiveNodesAndWriters(t *testing.T) {
 	f := farmer(t)
 	defer f.MustDestroy()
+	f.MustDestroy() // clean slate, just in case.
 	if err := f.Resize(5, 5); err != nil {
 		t.Fatal(err)
 	}
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
-	<-c
+	f.Assert(t)
+	for {
+		select {
+		case <-c:
+			return
+		case <-time.After(time.Minute):
+			f.Assert(t)
+		}
+	}
 }

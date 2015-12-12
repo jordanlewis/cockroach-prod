@@ -110,6 +110,7 @@ func (f *Farmer) output(key string) []string {
 	return strings.Split(o, ",")
 }
 
-func (f *Farmer) execSupervisor(i int, action string) error {
-	return f.Exec(i, "supervisorctl -c supervisor.conf "+action)
+func (f *Farmer) execSupervisor(host string, action string) (string, string, error) {
+	cmd := "supervisorctl -c supervisor.conf " + action
+	return f.ssh(host, f.defaultKeyFile(), cmd)
 }

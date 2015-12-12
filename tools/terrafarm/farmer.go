@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/cockroachdb/cockroach/util"
 )
@@ -150,8 +151,27 @@ func (f *Farmer) ConnString(i int) string {
 // Assert verifies that the cluster state is as expected (i.e. no unexpected
 // restarts or node deaths occurred). Tests can call this periodically to
 // ascertain cluster health.
-// TODO(tschottdorf): unimplemented.
-func (f *Farmer) Assert(t util.Tester) {}
+// TODO(tschottdorf): unimplemented when nodes are expected down.
+func (f *Farmer) Assert(t util.Tester) {
+	for _, item := range []struct {
+		typ   string
+		hosts []string
+	}{
+		{"cockroach", f.Nodes()},
+		{"block_writer", f.Writers()},
+	} {
+		for i, host := range item.hosts {
+			fmt.Println(item)
+			out, _, err := f.execSupervisor(host, "status "+item.typ)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(out, "RUNNING") {
+				t.Fatalf("%s %d (%s) is down:\n%s", item.typ, i, host, out)
+			}
+		}
+	}
+}
 
 // AssertAndStop performs the same test as Assert but then proceeds to
 // dismantle the cluster.
@@ -173,7 +193,8 @@ func (f *Farmer) Kill(i int) error {
 func (f *Farmer) Restart(i int) error {
 	_ = f.Kill(i)
 	// supervisorctl is horrible with exit codes (cockroachdb/cockroach-prod#59).
-	return f.execSupervisor(i, "start cockroach")
+	_, _, err := f.execSupervisor(f.Nodes()[i], "start cockroach")
+	return err
 }
 
 // URL returns the HTTP(s) endpoint.
