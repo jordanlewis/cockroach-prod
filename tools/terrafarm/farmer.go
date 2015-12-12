@@ -13,12 +13,16 @@
 // permissions and limitations under the License. See the AUTHORS file
 // for names of contributors.
 //
-// Author: Tobias Schottdorf
+// Author: Tobias Schottdorf (tobias.schottdorf@gmail.com)
 
 package terrafarm
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/cockroachdb/cockroach/util"
 )
@@ -26,24 +30,30 @@ import (
 // A Farmer sets up and manipulates a test cluster via terraform.
 type Farmer struct {
 	Debug          bool
-	Cwd            string
+	Cwd, LogDir    string
 	Args           []string
 	KeyName        string
 	nodes, writers []string
 }
 
-func (f *Farmer) Refresh() {
+func (f *Farmer) refresh() {
 	f.nodes = f.output("instances")
 	f.writers = f.output("example_block_writer")
 }
 
-// Nodes returns a slice of provisioned nodes' host names.
+// Nodes returns a (copied) slice of provisioned nodes' host names.
 func (f *Farmer) Nodes() (hosts []string) {
+	if len(f.nodes) == 0 {
+		f.refresh()
+	}
 	return append(hosts, f.nodes...)
 }
 
-// Writers returns a slice of provisioned block writers' host names.
+// Writers returns a (copied) slice of provisioned block writers' host names.
 func (f *Farmer) Writers() (hosts []string) {
+	if len(f.writers)+len(f.nodes) == 0 {
+		f.refresh()
+	}
 	return append(hosts, f.writers...)
 }
 
@@ -70,15 +80,67 @@ func (f *Farmer) Add(nodes, writers int) error {
 	return f.apply(args...)
 }
 
-// Destroy tears down the cluster.
+// Resize is the counterpart to Add which resizes a cluster given
+// the desired number of nodes and writers.
+func (f *Farmer) Resize(nodes, writers int) error {
+	return f.Add(nodes-f.NumNodes(), writers-f.NumWriters())
+}
+
+func (f *Farmer) AbsLogDir() string {
+	if f.LogDir == "" || filepath.IsAbs(f.LogDir) {
+		return f.LogDir
+	}
+	return filepath.Clean(filepath.Join(f.Cwd, f.LogDir))
+}
+
+// CollectLogs copies all possibly interesting files from all available peers
+// if LogDir is not empty.
+func (f *Farmer) CollectLogs() {
+	if f.LogDir == "" {
+		return
+	}
+	if err := os.MkdirAll(f.AbsLogDir(), 0777); err != nil {
+		fmt.Fprint(os.Stderr, err)
+		return
+	}
+	hosts := append(f.Nodes(), f.Writers()...)
+	const src = "logs"
+	for i, host := range hosts {
+		var dest string
+		if i < f.NumNodes() {
+			dest = "node." + dest
+		} else {
+			i -= f.NumNodes()
+			dest = "writer." + dest
+		}
+		dest += strconv.Itoa(i)
+		if err := f.scp(host, f.defaultKeyFile(), src,
+			filepath.Join(f.AbsLogDir(), dest)); err != nil {
+			fmt.Fprintf(os.Stderr, "error collecting %s from host %s: %s", src, host, err)
+		}
+	}
+}
+
+// Destroy collects the logs and tears down the cluster.
 func (f *Farmer) Destroy() error {
-	return f.Add(-f.NumNodes(), -f.NumWriters())
+	f.CollectLogs()
+	if f.Debug && f.LogDir != "" {
+		defer fmt.Fprintln(os.Stderr, "logs copied to", f.AbsLogDir())
+	}
+	return f.Resize(0, 0)
+}
+
+// MustDestroy calls Destroy(), panicking on error.
+func (f *Farmer) MustDestroy() {
+	if err := f.Destroy(); err != nil {
+		panic(err)
+	}
 }
 
 // Exec executes the given command on the i-th node, returning (in that order)
 // stdout, stderr and an error.
 func (f *Farmer) Exec(i int, cmd string) error {
-	stdout, stderr, err := f.ssh("ubuntu", f.Nodes()[i], f.defaultKeyFile(), cmd)
+	stdout, stderr, err := f.ssh(f.Nodes()[i], f.defaultKeyFile(), cmd)
 	if err != nil {
 		return fmt.Errorf("failed: %s: %s\nstdout:\n%s\nstderr:\n%s", cmd, err, stdout, stderr)
 	}
@@ -96,8 +158,26 @@ func (f *Farmer) ConnString(i int) string {
 // Assert verifies that the cluster state is as expected (i.e. no unexpected
 // restarts or node deaths occurred). Tests can call this periodically to
 // ascertain cluster health.
-// TODO(tschottdorf): unimplemented.
-func (f *Farmer) Assert(t util.Tester) {}
+// TODO(tschottdorf): unimplemented when nodes are expected down.
+func (f *Farmer) Assert(t util.Tester) {
+	for _, item := range []struct {
+		typ   string
+		hosts []string
+	}{
+		{"cockroach", f.Nodes()},
+		{"block_writer", f.Writers()},
+	} {
+		for i, host := range item.hosts {
+			out, _, err := f.execSupervisor(host, "status "+item.typ)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(out, "RUNNING") {
+				t.Fatalf("%s %d (%s) is down:\n%s", item.typ, i, host, out)
+			}
+		}
+	}
+}
 
 // AssertAndStop performs the same test as Assert but then proceeds to
 // dismantle the cluster.
@@ -119,7 +199,8 @@ func (f *Farmer) Kill(i int) error {
 func (f *Farmer) Restart(i int) error {
 	_ = f.Kill(i)
 	// supervisorctl is horrible with exit codes (cockroachdb/cockroach-prod#59).
-	return f.execSupervisor(i, "start cockroach")
+	_, _, err := f.execSupervisor(f.Nodes()[i], "start cockroach")
+	return err
 }
 
 // URL returns the HTTP(s) endpoint.
