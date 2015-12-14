@@ -19,15 +19,36 @@
 
 set -eu
 
-LOGS_DIR="${1-$(mktemp -d)}"
+run_timestamp=$(date  +"%Y-%m-%d-%H:%M:%S")
+LOGS_DIR="${1-$(mktemp -d)}/${run_timestamp}"
 KEY_NAME="${KEY_NAME}" # no default, want to crash if not supplied
 MAILTO="${MAILTO-}"
 
 mkdir -p "${LOGS_DIR}"
 
+# Takes a log directory prefix (in the local directory) and log file name,
+# creates trimmed versions and outputs the attach args to stdout.
+function collate_logs() {
+  prefix=$1
+  name=$2
+  a=""
+  for i in ${prefix}*; do
+    if [ -s "${i}/${name}.stderr" ]; then
+      tail -n 10000 ${i}/${name}.stderr > ${i}.stderr
+      a="${a} -A ${i}.stderr"
+    fi
+    if [ -s "${i}/${name}.stdout" ]; then
+      tail -n 10000 ${i}/${name}.stdout > ${i}.stdout
+      a="${a} -A ${i}.stdout"
+    fi
+  done
+  echo ${a}
+}
+
 function finish() {
   [[ $? -eq 0 ]] && STATUS="OK" || STATUS="FAIL"
   set +e
+  echo "Job status: ${STATUS}"
 
   cd "${LOGS_DIR}"
   pwd
@@ -38,22 +59,16 @@ function finish() {
   fi
 
   # Generate message and attach logs for each instance.
-  attach_args="--content-type=text/plain"
-  for i in $(seq 0 4); do
-    tail -n 10000 node.${i}/cockroach.stderr > node.${i}.stderr
-    tail -n 10000 node.${i}/cockroach.stdout > node.${i}.stdout
-    tail -n 10000 writer.${i}/block_writer.stderr > block_writer.stderr
-    tail -n 10000 writer.${i}/block_writer.stdout > block_writer.stdout
-    attach_args="${attach_args} -A node.${i}.stderr -A node.${i}.stdout"
-    attach_args="${attach_args} -A writer.${i}.stderr -A writer.${i}.stdout"
-  done
+  node_args=$(collate_logs node cockroach)
+  writer_args=$(collate_logs writer block_writer)
 
-  mail ${attach_args} -s "[${STATUS}] nightly cluster test" "${MAILTO}" < test.txt
+  mail --content-type=text/plain ${node_args} ${writer_args} \
+    -s "[${STATUS}] nightly cluster test" "${MAILTO}" < test.txt
 }
 
 trap finish EXIT
 
-exec go test -v -timeout 24h -run FiveNodesAndWriters \
+go test -v -timeout 24h -run FiveNodesAndWriters \
   github.com/cockroachdb/cockroach-prod/tools/terrafarm \
-  -d 1h -key-name "${KEY_NAME}" -l "${LOGS_DIR}" 2>&1 \
-  | tee "${LOGS_DIR}/test.txt"
+  -d 1h -key-name "${KEY_NAME}" -l "${LOGS_DIR}" \
+  > "${LOGS_DIR}/test.txt" 2>&1
