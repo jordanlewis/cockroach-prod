@@ -73,7 +73,7 @@ fi
 sqllogictest_sha=$(latest_sha ${BINARY_PATH})
 
 run_timestamp=$(date  +"%Y-%m-%d-%H:%M:%S")
-cd "${PROD_REPO}/terraform/aws/tests"
+cd "${COCKROACH_BASE}/cockroach/cloud/aws/tests"
 
 # Start the instances and work.
 do_retry "terraform apply --var=key_name=${KEY_NAME} --var=sqllogictest_sha=${sqllogictest_sha}" 5 5
