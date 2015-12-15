@@ -19,7 +19,7 @@
 
 set -eu
 
-run_timestamp=$(date  +"%Y-%m-%d-%H:%M:%S")
+run_timestamp=$(date  +"%Y-%m-%d-%H.%M.%S")
 LOGS_DIR="${1-$(mktemp -d)}/${run_timestamp}"
 KEY_NAME="${KEY_NAME}" # no default, want to crash if not supplied
 MAILTO="${MAILTO-}"
@@ -68,7 +68,7 @@ function finish() {
 
 trap finish EXIT
 
-go test -v -timeout 24h -run FiveNodesAndWriters \
-  github.com/cockroachdb/cockroach-prod/tools/terrafarm \
-  -d 1h -key-name "${KEY_NAME}" -l "${LOGS_DIR}" \
+go test -v -tags acceptance -timeout 24h -run FiveNodesAndWriters \
+  github.com/cockroachdb/cockroach/acceptance \
+  -num-remote 1 -d 1h -key-name "${KEY_NAME}" -l "${LOGS_DIR}" \
   > "${LOGS_DIR}/test.txt" 2>&1
