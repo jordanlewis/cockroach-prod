@@ -1,19 +1,18 @@
 #!/bin/bash
 #
-# This script runs the sql logic test on AWS.
+# This script runs the cockroach benchmarks on AWS.
 #
 # If run as a cron job, make sure you set your basic environment variables.
 # Run with:
-# run_logictests.sh [log dir]
+# run_benchmarks.sh [log dir]
 #
 # Logs will be saved in [log dir]/date-time/[instance number]/
 #
 # Requirements for this to work:
 # * basic environment variables set: HOME, PATH, GOPATH
 # * ~/.aws/credentials with valid AWS credentials
-# * ~/.ssh/cockroach.pem downloaded from AWS.
 # * terraform installed in your PATH
-# * <COCKROACH_BASE>/sqllogictest repo cloned and up to date
+# * benchstat installed in your PATH
 # * <COCKROACH_BASE>/cockroach-prod repo cloned and up to date
 # * <COCKROACH_BASE>/cockroach-prod/tools/supervisor/supervisor tool compiled
 # * EC2 keypair under ~/.ssh/cockroach-${USER}.pem
@@ -28,7 +27,7 @@
 # PATH=/bin:/sbin:/usr/bin:/usr/bin:/usr/local/bin:/usr/local/sbin:/home/MYUSER/bin:/home/MYUSER/go/bin
 # GOPATH=/home/MYUSER/cockroach
 #
-# 0 0 * * * /home/MYUSER/cockroach/src/github.com/cockroachdb/cockroach-prod/scripts/run_logictests.sh /MYLOGDIR/ > /MYLOGDIR/LATEST 2>&1
+# 0 0 * * * /home/MYUSER/cockroach/src/github.com/cockroachdb/cockroach-prod/scripts/run_benchmarks.sh /MYLOGDIR/ > /MYLOGDIR/LATEST 2>&1
 
 set -x
 
@@ -41,20 +40,21 @@ KEY_NAME="${KEY_NAME-cockroach-${USER}}"
 
 SSH_KEY="~/.ssh/${KEY_NAME}.pem"
 SSH_USER="ubuntu"
-BINARY_PATH="cockroach/sql.test"
+BINARY_PATH="cockroach/static-tests.tar.gz"
 run_timestamp=$(date  +"%Y-%m-%d-%H:%M:%S")
 
 PROD_REPO="${COCKROACH_BASE}/cockroach-prod"
-SQLTEST_REPO="${COCKROACH_BASE}/sqllogictest"
-
-if [ -z "${SQLTEST_REPO}" ]; then
-  echo "Could not find directory ${SQLTEST_REPO}"
-  exit 1
-fi
+run_timestamp=$(date  +"%Y-%m-%d-%H:%M:%S")
 
 which terraform > /dev/null
 if [ $? -ne 0 ]; then
   echo "Could not find terraform in your path"
+  exit 1
+fi
+
+which benchstat > /dev/null
+if [ $? -ne 0 ]; then
+  echo "Could not find benchstat in your path"
   exit 1
 fi
 
@@ -64,12 +64,12 @@ if [ ! -e "${monitor}" ]; then
   exit 1
 fi
 
-sqllogictest_sha=$(latest_sha ${BINARY_PATH})
+benchmarks_sha=$(latest_sha ${BINARY_PATH})
 
-cd "${COCKROACH_BASE}/cockroach/cloud/aws/tests"
+cd "${COCKROACH_BASE}/cockroach/cloud/aws/benchmarks"
 
 # Start the instances and work.
-do_retry "terraform apply --var=key_name=${KEY_NAME} --var=sqllogictest_sha=${sqllogictest_sha}" 5 5
+do_retry "terraform apply --var=key_name=${KEY_NAME} --var=benchmarks_sha=${benchmarks_sha}" 5 5
 if [ $? -ne 0 ]; then
   echo "Terraform apply failed."
   return 1
@@ -80,7 +80,7 @@ instances=$(terraform output instance|cut -d'=' -f2|tr ',' ' ')
 supervisor_hosts=$(echo ${instances}|fmt -1|awk '{print $1 ":9001"}'|xargs|tr ' ' ',')
 
 status="PASSED"
-summary=$(${monitor} --program=sql.test --addrs=${supervisor_hosts})
+summary=$(${monitor} --program=benchmarks --addrs=${supervisor_hosts})
 if [ $? -ne 0 ]; then
   status="FAILED"
 fi
@@ -108,14 +108,23 @@ if [ -z "${MAILTO}" ]; then
 fi
 
 cd "${LOGS_DIR}"
-attach_args="--content-type=text/plain"
+binary_sha_link ${BINARY_PATH} ${benchmarks_sha} > summary.html
+echo "<BR>" >> summary.html
+echo "${summary}" >> summary.html
+echo "<BR>" >> summary.html
+
 for i in ${instances}; do
-  tail -n 10000 ${i}/sql.test.stdout > ${i}.stdout
-  tail -n 10000 ${i}/sql.test.stderr > ${i}.stderr
-  attach_args="${attach_args} -A ${i}.stdout -A ${i}.stderr"
+  pushd ${i}
+  for test in $(find cockroach/ -type f -name '*.stdout' | sed 's/.stdout$//' | sort); do
+    out=$(benchstat -html "${test}.stdout")
+    if [ -z "${out}" ]; then
+      continue
+    fi
+    echo "<br><h2>${test}</h2><br>" >> ../summary.html
+    echo "${out}" >> ../summary.html
+    echo "<br>" >> ../summary.html
+  done
+  popd
 done
 
-binary_sha_link ${BINARY_PATH} ${sqllogictest_sha} > summary.txt
-echo "" >> summary.txt
-echo "${summary}" >> summary.txt
-mail ${attach_args} -s "SQL logic test ${status} ${run_timestamp}" ${MAILTO} < summary.txt
+mail -a "Content-type: text/html" -s "Benchmarks ${status} ${run_timestamp}" ${MAILTO} < summary.html
