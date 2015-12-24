@@ -15,14 +15,14 @@
 # PATH=/bin:/sbin:/usr/bin:/usr/bin:/usr/local/bin:/usr/local/sbin:/home/MYUSER/bin:/home/MYUSER/go/bin
 # GOPATH=/home/MYUSER/cockroach
 #
-# 0 0 * * * /home/MYUSER/cockroach/src/github.com/cockroachdb/cockroach-prod/scripts/run_cluster.sh
+# 0 0 * * * /home/MYUSER/cockroach/src/github.com/cockroachdb/cockroach-prod/scripts/run_clustertest.sh
 
-set -eu
+set -eux
 
-run_timestamp=$(date  +"%Y-%m-%d-%H.%M.%S")
-LOGS_DIR="${1-$(mktemp -d)}/${run_timestamp}"
-KEY_NAME="${KEY_NAME}" # no default, want to crash if not supplied
+LOGS_DIR="${1-$(mktemp -d)}"
+KEY_NAME="${KEY_NAME-cockroach-${USER}}"
 MAILTO="${MAILTO-}"
+run_timestamp=$(date  +"%Y-%m-%d-%H:%M:%S")
 
 mkdir -p "${LOGS_DIR}"
 
@@ -46,9 +46,9 @@ function collate_logs() {
 }
 
 function finish() {
-  [[ $? -eq 0 ]] && STATUS="OK" || STATUS="FAIL"
+  [[ $? -eq 0 ]] && status="PASSED" || status="FAILED"
   set +e
-  echo "Job status: ${STATUS}"
+  echo "Job status: ${status}"
 
   cd "${LOGS_DIR}"
   pwd
@@ -63,7 +63,7 @@ function finish() {
   writer_args=$(collate_logs writer block_writer)
 
   mail --content-type=text/plain ${node_args} ${writer_args} \
-    -s "[${STATUS}] nightly cluster test" "${MAILTO}" < test.txt
+    -s "Cluster test ${status} ${run_timestamp}" "${MAILTO}" < test.txt
 }
 
 trap finish EXIT
