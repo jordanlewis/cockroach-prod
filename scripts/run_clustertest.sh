@@ -62,8 +62,9 @@ function finish() {
   node_args=$(collate_logs node cockroach)
   writer_args=$(collate_logs writer block_writer)
 
+  cat test.stdout.txt test.stderr.txt |
   mail --content-type=text/plain ${node_args} ${writer_args} \
-    -s "Cluster test ${status} ${run_timestamp}" "${MAILTO}" < test.txt
+    -s "Cluster test ${status} ${run_timestamp}" "${MAILTO}"
 }
 
 trap finish EXIT
@@ -71,4 +72,4 @@ trap finish EXIT
 go test -v -tags acceptance -timeout 24h -run FiveNodesAndWriters \
   github.com/cockroachdb/cockroach/acceptance \
   -num-remote 1 -d 1h -key-name "${KEY_NAME}" -l "${LOGS_DIR}" \
-  > "${LOGS_DIR}/test.txt" 2>&1
+  > "${LOGS_DIR}/test.stdout.txt" 2> "${LOGS_DIR}/test.stderr.txt"
