@@ -71,5 +71,5 @@ trap finish EXIT
 
 go test -v -tags acceptance -timeout 24h -run FiveNodesAndWriters \
   github.com/cockroachdb/cockroach/acceptance \
-  -num-remote 1 -d 1h -key-name "${KEY_NAME}" -l "${LOGS_DIR}" \
+  -remote -nodes 1 -d 1h -key-name "${KEY_NAME}" -l "${LOGS_DIR}" \
   > "${LOGS_DIR}/test.stdout.txt" 2> "${LOGS_DIR}/test.stderr.txt"
