@@ -52,6 +52,9 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
+# ensure we have the latest version of our benchstat fork
+go get -u github.com/cockroachdb/benchstat
+
 which benchstat > /dev/null
 if [ $? -ne 0 ]; then
   echo "Could not find benchstat in your path"
