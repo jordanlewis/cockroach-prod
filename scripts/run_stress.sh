@@ -44,7 +44,6 @@ STRESS_BINARY_PATH="stress/stress"
 run_timestamp=$(date  +"%Y-%m-%d-%H:%M:%S")
 
 PROD_REPO="${COCKROACH_BASE}/cockroach-prod"
-run_timestamp=$(date  +"%Y-%m-%d-%H:%M:%S")
 
 which terraform > /dev/null
 if [ $? -ne 0 ]; then
