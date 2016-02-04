@@ -38,12 +38,15 @@ LOGS_DIR="${1-$(mktemp -d)}"
 MAILTO="${MAILTO-}"
 KEY_NAME="${KEY_NAME-cockroach-${USER}}"
 
-SSH_KEY="~/.ssh/${KEY_NAME}.pem"
+SSH_KEY="$HOME/.ssh/${KEY_NAME}.pem"
 SSH_USER="ubuntu"
 BINARY_PATH="cockroach/static-tests.tar.gz"
 
 PROD_REPO="${COCKROACH_BASE}/cockroach-prod"
 run_timestamp=$(date  +"%Y-%m-%d-%H:%M:%S")
+
+CODESPEED_SERVER="${CODESPEED_SERVER}"
+uploader=$(cd `dirname "${BASH_SOURCE[0]}"` && pwd)/upload_benchmarks.py
 
 which terraform > /dev/null
 if [ $? -ne 0 ]; then
@@ -103,12 +106,6 @@ if [ $? -ne 0 ]; then
   return 1
 fi
 
-# Send email.
-if [ -z "${MAILTO}" ]; then
-  echo "MAILTO variable not set, not sending email."
-  exit 0
-fi
-
 cd "${LOGS_DIR}"
 binary_sha_link ${BINARY_PATH} ${benchmarks_sha} > summary.html
 echo "<BR>" >> summary.html
@@ -125,8 +122,19 @@ for i in ${instances}; do
     echo "<br><h2>${test}</h2><br>" >> ../summary.html
     echo "${out}" >> ../summary.html
     echo "<br>" >> ../summary.html
+
+    if [ ! -z "${CODESPEED_SERVER}" ]; then
+      benchstat -json "${test}.stdout" | sed 's/test.stdout//' > "${test}.json"
+      $uploader -e aws -r ${benchmarks_sha} -p cockroach -s ${CODESPEED_SERVER} "${test}.json"
+    fi
   done
   popd
 done
+
+# Send email.
+if [ -z "${MAILTO}" ]; then
+  echo "MAILTO variable not set, not sending email."
+  exit 0
+fi
 
 mail -a "Content-type: text/html" -s "Benchmarks ${status} ${run_timestamp}" ${MAILTO} < summary.html
