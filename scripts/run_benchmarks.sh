@@ -41,7 +41,6 @@ KEY_NAME="${KEY_NAME-cockroach-${USER}}"
 SSH_KEY="~/.ssh/${KEY_NAME}.pem"
 SSH_USER="ubuntu"
 BINARY_PATH="cockroach/static-tests.tar.gz"
-run_timestamp=$(date  +"%Y-%m-%d-%H:%M:%S")
 
 PROD_REPO="${COCKROACH_BASE}/cockroach-prod"
 run_timestamp=$(date  +"%Y-%m-%d-%H:%M:%S")
