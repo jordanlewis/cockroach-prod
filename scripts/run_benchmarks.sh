@@ -124,7 +124,7 @@ for i in ${instances}; do
     echo "<br>" >> ../summary.html
 
     if [ ! -z "${CODESPEED_SERVER}" ]; then
-      benchstat -json "${test}.stdout" | sed 's/test.stdout//' > "${test}.json"
+      benchstat -json "${test}.stdout" | sed 's/.test.stdout//g' > "${test}.json"
       $uploader -e aws -r ${benchmarks_sha} -p cockroach -s ${CODESPEED_SERVER} "${test}.json"
     fi
   done
