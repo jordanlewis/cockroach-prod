@@ -108,6 +108,10 @@ fi
 
 cd "${LOGS_DIR}"
 binary_sha_link ${BINARY_PATH} ${benchmarks_sha} > summary.html
+if [ ! -z "${CODESPEED_SERVER}" ]; then
+  echo "<BR>" >> summary.html
+  echo "Benchmarks dashboard: ${CODESPEED_SERVER}" >> summary.html
+fi
 echo "<BR>" >> summary.html
 echo "${summary}" >> summary.html
 echo "<BR>" >> summary.html
