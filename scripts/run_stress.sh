@@ -114,17 +114,17 @@ for i in ${instances}; do
     if [ "${result}" != "SUCCESS" ]; then
       status="FAILED"
       result="FAILED"
+      flat_name=$(echo ${test} | tr '/' '_')
+      if [ -s "${test}.stdout" ]; then
+        tail -n 10000 "${test}.stdout" > ../${flat_name}.stdout
+        attach_args="${attach_args} -A ${flat_name}.stdout"
+      fi
+      if [ -s "${test}.stderr" ]; then
+        tail -n 10000 "${test}.stderr" > ../${flat_name}.stderr
+        attach_args="${attach_args} -A ${flat_name}.stderr"
+      fi
     fi
     echo "${test}: ${result}" >> ../summary.txt
-    flat_name=$(echo ${test} | tr '/' '_')
-    if [ -s "${test}.stdout" ]; then
-      tail -n 10000 "${test}.stdout" > ../${flat_name}.stdout
-      attach_args="${attach_args} -A ${flat_name}.stdout"
-    fi
-    if [ -s "${test}.stderr" ]; then
-      tail -n 10000 "${test}.stderr" > ../${flat_name}.stderr
-      attach_args="${attach_args} -A ${flat_name}.stderr"
-    fi
   done
   popd
 done
