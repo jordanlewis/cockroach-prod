@@ -39,7 +39,7 @@ LOGS_DIR="${1-$(mktemp -d)}"
 MAILTO="${MAILTO-}"
 KEY_NAME="${KEY_NAME-cockroach-${USER}}"
 
-SSH_KEY="~/.ssh/${KEY_NAME}.pem"
+SSH_KEY="${HOME}/.ssh/${KEY_NAME}.pem"
 SSH_USER="ubuntu"
 BINARY_PATH="cockroach/sql.test"
 run_timestamp=$(date  +"%Y-%m-%d-%H:%M:%S")

@@ -38,7 +38,7 @@ LOGS_DIR="${1-$(mktemp -d)}"
 MAILTO="${MAILTO-}"
 KEY_NAME="${KEY_NAME-cockroach-${USER}}"
 
-SSH_KEY="$HOME/.ssh/${KEY_NAME}.pem"
+SSH_KEY="${HOME}/.ssh/${KEY_NAME}.pem"
 SSH_USER="ubuntu"
 BINARY_PATH="cockroach/static-tests.tar.gz"
 

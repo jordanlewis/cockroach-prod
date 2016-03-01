@@ -25,6 +25,7 @@
 # HOME=/home/MYUSER
 # PATH=/bin:/sbin:/usr/bin:/usr/bin:/usr/local/bin:/usr/local/sbin:/home/MYUSER/bin:/home/MYUSER/go/bin
 # GOPATH=/home/MYUSER/cockroach
+# GITHUB_API_TOKEN=your_token_here
 #
 # 0 0 * * * /home/MYUSER/cockroach/src/github.com/cockroachdb/cockroach-prod/scripts/run_stress.sh /MYLOGDIR/ > /MYLOGDIR/LATEST 2>&1
 
@@ -37,7 +38,7 @@ LOGS_DIR="${1-$(mktemp -d)}"
 MAILTO="${MAILTO-}"
 KEY_NAME="${KEY_NAME-cockroach-${USER}}"
 
-SSH_KEY="~/.ssh/${KEY_NAME}.pem"
+SSH_KEY="${HOME}/.ssh/${KEY_NAME}.pem"
 SSH_USER="ubuntu"
 TESTS_PATH="cockroach/static-tests.tar.gz"
 STRESS_BINARY_PATH="stress/stress"
@@ -95,10 +96,16 @@ if [ $? -ne 0 ]; then
   return 1
 fi
 
-# Send email.
-if [ -z "${MAILTO}" ]; then
-  echo "MAILTO variable not set, not sending email."
-  exit 0
+function json_escape(){
+  echo -n "$1" | python -c 'import json,sys; print json.dumps(sys.stdin.read()).strip("\"")'
+}
+
+function post() {
+  curl -X POST -H "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/cockroachDB/cockroach/issues" -d "${1:0:30000}"
+}
+
+if [ -z "${GITHUB_API_TOKEN}" ]; then
+  echo "GITHUB_API_TOKEN variable not set, not posting issues."
 fi
 
 cd "${LOGS_DIR}"
@@ -123,10 +130,29 @@ for i in ${instances}; do
         tail -n 10000 "${test}.stderr" > ../${flat_name}.stderr
         attach_args="${attach_args} -A ${flat_name}.stderr"
       fi
+      # Post Github issues.
+      if [ ! -z "${GITHUB_API_TOKEN}" ]; then
+        failed_tests=$(grep -oh '^--- FAIL: \w*' ../${flat_name}.stderr | sed -e 's/--- FAIL: //' | tr '\n' ' ' || true)
+        IFS=', ' read -r -a failed_tests_array <<< "$failed_tests"
+        for failed_test in "${failed_tests_array[@]}"
+        do
+          content=$(awk "/^=== RUN/ {flag=0};/^=== RUN   ${failed_test}$/ {flag=1} flag" ../${flat_name}.stderr)
+          content_escaped=$(json_escape "${content}")
+          title="stress: failed test in ${test}: ${failed_test}"
+          body="The following test appears to have failed:\n\n\`\`\`\n${content_escaped}\n\`\`\`\nPlease assign, take a look and update the issue accordingly."
+          json="{ \"title\": \"${title}\", \"body\": \"${body}\", \"labels\": [\"test-failure\", \"Robot\"] }"
+          post "${json}"
+        done
+      fi
     fi
     echo "${test}: ${result}" >> ../summary.txt
   done
   popd
 done
 
-mail ${attach_args} -s "Stress tests ${status} ${run_timestamp}" ${MAILTO} < summary.txt
+# Send email.
+if [ -z "${MAILTO}" ]; then
+  echo "MAILTO variable not set, not sending email."
+else
+  mail ${attach_args} -s "Stress tests ${status} ${run_timestamp}" ${MAILTO} < summary.txt
+fi
