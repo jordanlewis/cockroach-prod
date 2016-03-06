@@ -109,22 +109,24 @@ if [ -z "${GITHUB_API_TOKEN}" ]; then
 fi
 
 cd "${LOGS_DIR}"
-binary_sha_link ${TESTS_PATH} ${tests_sha} > summary.txt
+binary_sha=$(binary_sha_link ${TESTS_PATH} ${tests_sha} | tee summary.txt)
 echo "${summary}" >> summary.txt
 echo "" >> summary.txt
 echo "Packages:" >> summary.txt
 attach_args="--content-type=text/plain"
 for i in ${instances}; do
   pushd ${i}
-  for test in $(find cockroach/ -type f -name '*.stdout' | sed 's/.stdout$//' | sort); do
+  for test in $(find cockroach -type f -name '*.stdout' | sed 's/.stdout$//' | sort); do
     result=$(tail -n 1 "${test}.stdout")
     if [ "${result}" != "SUCCESS" ]; then
       status="FAILED"
       result="FAILED"
       flat_name=$(echo ${test} | tr '/' '_')
+      stdoutresponse="no ${test}.stdout file generated"
       if [ -s "${test}.stdout" ]; then
         tail -n 10000 "${test}.stdout" > ../${flat_name}.stdout
         attach_args="${attach_args} -A ${flat_name}.stdout"
+        stdoutresponse=$(<${test}.stdout)
       fi
       if [ -s "${test}.stderr" ]; then
         tail -n 10000 "${test}.stderr" > ../${flat_name}.stderr
@@ -132,15 +134,16 @@ for i in ${instances}; do
       fi
       # Post Github issues.
       if [ ! -z "${GITHUB_API_TOKEN}" ]; then
-        failed_tests=$(grep -oh '^--- FAIL: \w*' ../${flat_name}.stderr | sed -e 's/--- FAIL: //' | tr '\n' ' ' || true)
+        failed_tests=$(grep -oh '^--- FAIL: \w*' ${test}.stderr | sed -e 's/--- FAIL: //' | tr '\n' ' ' || true)
         IFS=', ' read -r -a failed_tests_array <<< "$failed_tests"
         for failed_test in "${failed_tests_array[@]}"
         do
-          content=$(awk "/^=== RUN/ {flag=0};/^=== RUN   ${failed_test}$/ {flag=1} flag" ../${flat_name}.stderr)
+          content=$(awk "/^=== RUN/ {flag=0};/^=== RUN   ${failed_test}$/ {flag=1} flag" ${test}.stderr)
           content_escaped=$(json_escape "${content}")
           title="stress: failed test in ${test}: ${failed_test}"
-          body="The following test appears to have failed:\n\n\`\`\`\n${content_escaped}\n\`\`\`\nPlease assign, take a look and update the issue accordingly."
-          json="{ \"title\": \"${title}\", \"body\": \"${body}\", \"labels\": [\"test-failure\", \"Robot\"] }"
+          details=$(json_escape "${stdoutresponse}")
+          body="${binary_sha}\n\nStress build found a failed test:\n\n\`\`\`\n${content_escaped}\n\`\`\`\n\nRun Details:\n\n\`\`\`\n${details}\n\`\`\`\nPlease assign, take a look and update the issue accordingly."
+          json="{ \"title\": \"${title}\", \"body\": \"${body}\", \"labels\": [\"test-failure\", \"Robot\"], \"milestone\": 1 }"
           post "${json}"
         done
       fi
