@@ -101,7 +101,8 @@ function json_escape(){
 }
 
 function post() {
-  curl -X POST -H "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/cockroachDB/cockroach/issues" -d "${1:0:30000}"
+  echo "${1}" > post.json
+  curl -X POST -H "Authorization: token ${GITHUB_API_TOKEN}" "https://api.github.com/repos/cockroachDB/cockroach/issues" -d @post.json
 }
 
 if [ -z "${GITHUB_API_TOKEN}" ]; then
@@ -134,6 +135,7 @@ for i in ${instances}; do
       fi
       # Post Github issues.
       if [ ! -z "${GITHUB_API_TOKEN}" ]; then
+        # Normal failed tests.
         failed_tests=$(grep -oh '^--- FAIL: \w*' ${test}.stderr | sed -e 's/--- FAIL: //' | tr '\n' ' ' || true)
         IFS=', ' read -r -a failed_tests_array <<< "$failed_tests"
         for failed_test in "${failed_tests_array[@]}"
@@ -146,6 +148,20 @@ for i in ${instances}; do
           json="{ \"title\": \"${title}\", \"body\": \"${body}\", \"labels\": [\"test-failure\", \"Robot\"], \"milestone\": 1 }"
           post "${json}"
         done
+        # Panics or test timeouts.
+        panic=$(grep -oh '^ERROR: exit status 2' ${test}.stderr)
+        if [ ! -z "${panic}" ]; then
+          failed_test=$(grep -ohn '^=== RUN   \w*$' ${test}.stderr | awk END{print})
+          failed_test_first_line=$(echo ${failed_test} | awk '{print $1}' FS=":")
+          failed_test_name=$(echo ${failed_test} | grep -oh '\w*$')
+          content=$(awk "NR>=${failed_test_first_line}" ${test}.stderr)
+          content_escaped=$(json_escape "${content}")
+          title="stress: failed test in ${test}: ${failed_test_name}"
+          details=$(json_escape "${stdoutresponse}")
+          body="${binary_sha}\n\nStress build found a failed test:\n\n\`\`\`\n${content_escaped}\n\`\`\`\n\nRun Details:\n\n\`\`\`\n${details}\n\`\`\`\nPlease assign, take a look and update the issue accordingly."
+          json="{ \"title\": \"${title}\", \"body\": \"${body}\", \"labels\": [\"test-failure\", \"Robot\"], \"milestone\": 1 }"
+          post "${json}"
+        fi
       fi
     fi
     echo "${test}: ${result}" >> ../summary.txt
