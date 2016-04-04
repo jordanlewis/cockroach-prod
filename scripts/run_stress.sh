@@ -13,7 +13,7 @@
 # * ~/.aws/credentials with valid AWS credentials
 # * terraform installed in your PATH
 # * <COCKROACH_BASE>/cockroach-prod repo cloned and up to date
-# * <COCKROACH_BASE>/cockroach-prod/tools/supervisor/supervisor tool compiled
+# * <COCKROACH_BASE>/cockroach-prod/tools/supervisor/supervisor tool compiled to ${GOPATH}/bin/
 # * EC2 keypair under ~/.ssh/cockroach-${USER}.pem
 #
 # This script retries various operations quite a bit, but without
@@ -52,7 +52,7 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-monitor="${PROD_REPO}/tools/supervisor/supervisor"
+monitor="${GOPATH}/bin/supervisor"
 if [ ! -e "${monitor}" ]; then
   echo "Could not locate supervisor monitor at ${monitor}"
   exit 1
