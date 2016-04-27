@@ -3,8 +3,7 @@
 # A thin wrapper around the `terrafarm` test runner.
 # Requirements for this to work:
 # * working Go environment: GOPATH (but possibly HOME, PATH, GOPATH, GOROOT)
-# * ~/.aws/credentials with valid AWS credentials
-# * ~/.ssh/${KEY_NAME}.pem downloaded from AWS.
+# * GCE credentials as described in cockroach/cloud/gce/README.md
 # * terraform installed in your PATH
 # * for mailing the results to work: Linux.
 #
@@ -20,7 +19,7 @@
 set -eux
 
 LOGS_DIR="${1-$(mktemp -d)}"
-KEY_NAME="${KEY_NAME-cockroach-${USER}}"
+KEY_NAME="${KEY_NAME-google_compute_engine}"
 MAILTO="${MAILTO-}"
 run_timestamp=$(date  +"%Y-%m-%d-%H:%M:%S")
 
@@ -71,5 +70,5 @@ trap finish EXIT
 
 go test -v -tags acceptance -timeout 24h -run FiveNodesAndWriters \
   github.com/cockroachdb/cockroach/acceptance \
-  -remote -nodes 1 -d 1h -key-name "${KEY_NAME}" -l "${LOGS_DIR}" \
+  -remote -nodes 1 -d 1h -key-name "${KEY_NAME}" -l "${LOGS_DIR}" -cwd "../cloud/gce" \
   > "${LOGS_DIR}/test.stdout.txt" 2> "${LOGS_DIR}/test.stderr.txt"

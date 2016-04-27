@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# This script runs the sql logic test on AWS.
+# This script runs the sql logic test on GCE.
 #
 # If run as a cron job, make sure you set your basic environment variables.
 # Run with:
@@ -10,13 +10,11 @@
 #
 # Requirements for this to work:
 # * basic environment variables set: HOME, PATH, GOPATH
-# * ~/.aws/credentials with valid AWS credentials
-# * ~/.ssh/cockroach.pem downloaded from AWS.
+# * GCE credentials as described in cockroach/cloud/gce/README.md
 # * terraform installed in your PATH
 # * <COCKROACH_BASE>/sqllogictest repo cloned and up to date
 # * <COCKROACH_BASE>/cockroach-prod repo cloned and up to date
 # * <COCKROACH_BASE>/cockroach-prod/tools/supervisor/supervisor tool compiled to ${GOPATH}/bin/
-# * EC2 keypair under ~/.ssh/cockroach-${USER}.pem
 #
 # This script retries various operations quite a bit, but without
 # a limit on the number of retries. This may cause issues.
@@ -37,9 +35,9 @@ source $(dirname $0)/utils.sh
 COCKROACH_BASE="${GOPATH}/src/github.com/cockroachdb"
 LOGS_DIR="${1-$(mktemp -d)}"
 MAILTO="${MAILTO-}"
-KEY_NAME="${KEY_NAME-cockroach-${USER}}"
+KEY_NAME="${KEY_NAME-google_compute_engine}"
 
-SSH_KEY="${HOME}/.ssh/${KEY_NAME}.pem"
+SSH_KEY="${HOME}/.ssh/${KEY_NAME}"
 SSH_USER="ubuntu"
 BINARY_PATH="cockroach/sql.test"
 run_timestamp=$(date  +"%Y-%m-%d-%H:%M:%S")
@@ -66,7 +64,7 @@ fi
 
 sqllogictest_sha=$(latest_sha ${BINARY_PATH})
 
-cd "${COCKROACH_BASE}/cockroach/cloud/aws/tests"
+cd "${COCKROACH_BASE}/cockroach/cloud/gce/sql_logic_tests"
 
 # Start the instances and work.
 do_retry "terraform apply --var=key_name=${KEY_NAME} --var=sqllogictest_sha=${sqllogictest_sha}" 5 5
