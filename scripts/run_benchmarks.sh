@@ -39,7 +39,10 @@ KEY_NAME="${KEY_NAME-google_compute_engine}"
 
 SSH_KEY="${HOME}/.ssh/${KEY_NAME}"
 SSH_USER="ubuntu"
-BINARY_PATH="cockroach/static-tests.tar.gz"
+# Build type can be empty for default, or ".jemalloc" for jemalloc-enabled builds.
+BUILD_TYPE="${BUILD_TYPE-}"
+PACKAGE_TYPE="static-tests${BUILD_TYPE}"
+BINARY_PATH="cockroach/${PACKAGE_TYPE}.tar.gz"
 
 PROD_REPO="${COCKROACH_BASE}/cockroach-prod"
 run_timestamp=$(date  +"%Y-%m-%d-%H:%M:%S")
@@ -73,14 +76,14 @@ benchmarks_sha=$(latest_sha ${BINARY_PATH})
 cd "${COCKROACH_BASE}/cockroach/cloud/gce/benchmarks"
 
 # Start the instances and work.
-do_retry "terraform apply --var=key_name=${KEY_NAME} --var=benchmarks_sha=${benchmarks_sha}" 5 5
+do_retry "terraform apply --state=terraform${BUILD_TYPE}.tfstate --var=key_name=${KEY_NAME} --var=benchmarks_package=${PACKAGE_TYPE} --var=benchmarks_sha=${benchmarks_sha}" 5 5
 if [ $? -ne 0 ]; then
   echo "Terraform apply failed."
   return 1
 fi
 
 # Fetch instances names.
-instances=$(terraform output instance|cut -d'=' -f2|tr ',' ' ')
+instances=$(terraform output --state=terraform${BUILD_TYPE}.tfstate instance|cut -d'=' -f2|tr ',' ' ')
 supervisor_hosts=$(echo ${instances}|fmt -1|awk '{print $1 ":9001"}'|xargs|tr ' ' ',')
 
 status="PASSED"
@@ -99,7 +102,7 @@ for i in ${instances}; do
 done
 
 # Destroy all instances.
-do_retry "terraform destroy --var=key_name=${KEY_NAME} --force" 5 5
+do_retry "terraform destroy --state=terraform${BUILD_TYPE}.tfstate --var=key_name=${KEY_NAME} --force" 5 5
 if [ $? -ne 0 ]; then
   echo "Terraform destroy failed."
   return 1
@@ -128,7 +131,7 @@ for i in ${instances}; do
 
     if [ ! -z "${CODESPEED_SERVER}" ]; then
       benchstat -json "${test}.stdout" | sed 's/.test.stdout//g' > "${test}.json"
-      $uploader -e gce -r ${benchmarks_sha} -p cockroach -s ${CODESPEED_SERVER} "${test}.json"
+      $uploader -e "gce${BUILD_TYPE}" -r ${benchmarks_sha} -p cockroach -s ${CODESPEED_SERVER} "${test}.json"
     fi
   done
   popd
@@ -140,4 +143,4 @@ if [ -z "${MAILTO}" ]; then
   exit 0
 fi
 
-mail -a "Content-type: text/html" -s "Benchmarks ${status} ${run_timestamp}" ${MAILTO} < summary.html
+mail -a "Content-type: text/html" -s "Benchmarks${BUILD_TYPE} ${status} ${run_timestamp}" ${MAILTO} < summary.html
