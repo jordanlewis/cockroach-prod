@@ -39,7 +39,7 @@ KEY_NAME="${KEY_NAME-google_compute_engine}"
 
 SSH_KEY="${HOME}/.ssh/${KEY_NAME}"
 SSH_USER="ubuntu"
-# Build type can be empty for default, or ".jemalloc" for jemalloc-enabled builds.
+# Build type can be empty for default, or ".stdmalloc" for default allocator builds.
 BUILD_TYPE="${BUILD_TYPE-}"
 PACKAGE_TYPE="static-tests${BUILD_TYPE}"
 BINARY_PATH="cockroach/${PACKAGE_TYPE}.tar.gz"
