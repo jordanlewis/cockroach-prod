@@ -112,6 +112,7 @@ cd "${LOGS_DIR}"
 binary_sha=$(binary_sha_link ${TESTS_PATH} ${tests_sha} | tee summary.txt)
 echo "${summary}" >> summary.txt
 echo "" >> summary.txt
+echo "" >> summary_success.txt
 echo "Packages:" >> summary.txt
 attach_args="--content-type=text/plain"
 for i in ${instances}; do
@@ -162,8 +163,10 @@ for i in ${instances}; do
           post "${json}"
         fi
       fi
+      echo "${test}: ${result}" >> ../summary.txt
+    else
+      echo "${test}: ${result}" >> ../summary_success.txt
     fi
-    echo "${test}: ${result}" >> ../summary.txt
   done
   popd
 done
@@ -172,5 +175,5 @@ done
 if [ -z "${MAILTO}" ]; then
   echo "MAILTO variable not set, not sending email."
 else
-  mail ${attach_args} -s "Stress tests ${status} ${run_timestamp}" ${MAILTO} < summary.txt
+  cat summary.txt summary_success.txt | mail ${attach_args} -s "Stress tests ${status} ${run_timestamp}" ${MAILTO}
 fi
