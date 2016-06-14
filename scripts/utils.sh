@@ -34,6 +34,29 @@ latest_sha() {
   echo ${sha}
 }
 
+# download_binary takes a [repo]/[binary] and an optional sha and downloads
+# the specified binary. If the sha is missing the latest binary will be fetched.
+download_binary() {
+    binary_path="$1"
+    if [ -z "${binary_path}" ]; then
+      echo "binary not specified, run with: [repo-name]/[binary-name]"
+      exit 1
+    fi
+    sha="$2"
+    if [ -z "${sha}" ]; then
+        sha=$(latest_sha "${binary_path}")
+    fi
+
+    # Fetch binary.
+    binary_url="https://s3.amazonaws.com/${BUCKET_NAME}/${binary_path}.${sha}"
+    curl -O ${binary_url}
+
+    # Chmod and symlink.
+    binary_name=$(basename ${binary_path})
+    chmod 755 ${binary_name}.${sha}
+    ln -s -f ${binary_name}.${sha} ${binary_name}
+}
+
 # binary_sha_link takes a binary path and a sha and prints
 # the html link to the commit log on github.
 # eg: binary_sha_link cockroach/sql.test c7c582a6abfbe7ce3c1d23597d928bc8b6f370f6
