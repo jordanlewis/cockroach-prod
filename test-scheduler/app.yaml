@@ -1,0 +1,12 @@
+runtime: go
+api_version: go1
+application: cockroach-shared
+
+handlers:
+- url: /.*
+  script: _go_app
+  # this prevents anyone from using the app except for our cron instance
+  login: admin
+
+env_variables:
+    CIRCLE_CI_TOKEN: SET_YOUR_CIRCLE_CI_TOKEN_HERE
