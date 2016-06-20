@@ -1,0 +1,5 @@
+cron:
+- description: trigger nightly tests
+  url: /trigger
+  schedule: every day 00:00
+  timezone: America/New_York

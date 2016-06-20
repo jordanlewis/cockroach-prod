@@ -1,0 +1,12 @@
+dependencies:
+  override:
+    - ./build/install_deps.sh
+  cache_directories:
+    - terraform_0.6.16_linux_amd64
+
+test:
+  override:
+    - >
+      if [ -n "${RUN_NIGHTLY_BUILD}" ]; then
+        ./scripts/run_circletest.sh;
+      fi
