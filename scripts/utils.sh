@@ -80,3 +80,25 @@ binary_sha_link() {
   fi
   echo "Binary: ${binary_path} sha: https://github.com/cockroachdb/${repo}/commits/${sha}"
 }
+
+# create_junit_single_output takes a suite name, a test name, a time in
+# `date +%s.%N` format, a success boolean and a path, and outputs a junit
+# compatible xml file to the path with the input data.
+create_junit_single_output() {
+    suite_name="$1"
+    test_name="$2"
+    time="$3"
+    success="$4"
+    path="$5"
+    failures=0
+    if [ ! "${success}" ]; then
+        failures=1
+    fi
+    echo "<testsuite name=\"${suite_name}\" tests=\"1\" errors=\"0\" failures=\"${failures}\" skip=\"0\">" >> ${path}
+    echo "  <testcase classname=\"${suite_name}\" name=\"${test_name}\" time=\"${time}\">" >> ${path}
+    if [ ! "${success}" ]; then
+        echo "    <failure type=\"Fail\">Test failed</failure>" >> ${path}
+    fi
+    echo "  </testcase>" >> ${path}
+    echo "</testsuite>" >> ${path}
+}
