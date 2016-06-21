@@ -32,10 +32,12 @@ set -x
 
 source $(dirname $0)/utils.sh
 
-COCKROACH_BASE="${GOPATH}/src/github.com/cockroachdb"
-LOGS_DIR="${1-$(mktemp -d)}"
+COCKROACH_BASE="${GOPATH%%:*}/src/github.com/cockroachdb"
+LOGS_DIR="${CIRCLE_ARTIFACTS}/logictests"
 MAILTO="${MAILTO-}"
 KEY_NAME="${KEY_NAME-google_compute_engine}"
+
+mkdir -p "${LOGS_DIR}"
 
 SSH_KEY="${HOME}/.ssh/${KEY_NAME}"
 SSH_USER="ubuntu"
@@ -56,7 +58,7 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-monitor="${GOPATH}/bin/supervisor"
+monitor="${GOPATH%%:*}/bin/supervisor"
 if [ ! -e "${monitor}" ]; then
   echo "Could not locate supervisor monitor at ${monitor}"
   exit 1
@@ -66,25 +68,35 @@ sqllogictest_sha=$(latest_sha ${BINARY_PATH})
 
 cd "${COCKROACH_BASE}/cockroach/cloud/gce/sql_logic_tests"
 
+START=$(date +%s)
+# Assume the test failed.
+status="0"
+
 # Start the instances and work.
+# N.B. Do not separate the following two lines! You will break the test.
 do_retry "terraform apply --var=key_name=${KEY_NAME} --var=sqllogictest_sha=${sqllogictest_sha}" 5 5
-if [ $? -ne 0 ]; then
+if [ $? -eq 0 ]; then
+  # Fetch instance names and wait for tests to finish.
+  instances=$(terraform output instance|cut -d'=' -f2|tr ',' ' ')
+  supervisor_hosts=$(echo ${instances}|fmt -1|awk '{print $1 ":9001"}'|xargs|tr ' ' ',')
+
+  summary=$(${monitor} --program=sql.test --addrs=${supervisor_hosts})
+  if [ $? -eq 0 ]; then
+    # Success!
+    status="1"
+  fi
+else
   echo "Terraform apply failed."
-  return 1
 fi
+END=$(date +%s)
+duration=$((END - START))
 
-# Fetch instances names.
-instances=$(terraform output instance|cut -d'=' -f2|tr ',' ' ')
-supervisor_hosts=$(echo ${instances}|fmt -1|awk '{print $1 ":9001"}'|xargs|tr ' ' ',')
+echo "${summary}" > ${LOGS_DIR}/summary.txt
 
-status="PASSED"
-summary=$(${monitor} --program=sql.test --addrs=${supervisor_hosts})
-if [ $? -ne 0 ]; then
-  status="FAILED"
-fi
+mkdir -p ${CIRCLE_TEST_REPORTS}/logictests
+$(create_junit_single_output "github.com/cockroachdb/cockroach-prod/scripts/run_logictests" "logictests" $duration $status "${CIRCLE_TEST_REPORTS}/logictests/logictests.xml")
 
 # Fetch all logs.
-mkdir -p "${LOGS_DIR}"
 for i in ${instances}; do
   scp -i ${SSH_KEY} -r -oStrictHostKeyChecking=no ${SSH_USER}@${i}:logs "${LOGS_DIR}/${i}"
   if [ $? -ne 0 ]; then
@@ -96,24 +108,5 @@ done
 do_retry "terraform destroy --var=key_name=${KEY_NAME} --force" 5 5
 if [ $? -ne 0 ]; then
   echo "Terraform destroy failed."
-  return 1
+  exit 1
 fi
-
-# Send email.
-if [ -z "${MAILTO}" ]; then
-  echo "MAILTO variable not set, not sending email."
-  exit 0
-fi
-
-cd "${LOGS_DIR}"
-attach_args="--content-type=text/plain"
-for i in ${instances}; do
-  tail -n 10000 ${i}/sql.test.stdout > ${i}.stdout
-  tail -n 10000 ${i}/sql.test.stderr > ${i}.stderr
-  attach_args="${attach_args} -A ${i}.stdout -A ${i}.stderr"
-done
-
-binary_sha_link ${BINARY_PATH} ${sqllogictest_sha} > summary.txt
-echo "" >> summary.txt
-echo "${summary}" >> summary.txt
-mail ${attach_args} -s "SQL logic test ${status} ${run_timestamp}" ${MAILTO} < summary.txt

@@ -1,3 +1,15 @@
+checkout:
+  post:
+    - git fetch --unshallow || true
+    - git fetch --tags
+    # GOPATH is cached, so we need to clean out the version from the previous
+    # run or the subsequent `mv` will fail. We put our checkout in the correct
+    # location for the OSX build step.
+    - rm -rf              "${GOPATH%%:*}/src/github.com/cockroachdb/cockroach-prod"
+    - mkdir -p            "${GOPATH%%:*}/src/github.com/cockroachdb/"
+    - mv ~/cockroach-prod "${GOPATH%%:*}/src/github.com/cockroachdb/"
+    - ln -s               "${GOPATH%%:*}/src/github.com/cockroachdb/cockroach-prod" ~/cockroach-prod
+
 dependencies:
   override:
     - ./build/install_deps.sh
