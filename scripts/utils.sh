@@ -20,7 +20,7 @@ do_retry() {
 BUCKET_NAME="cockroach"
 LATEST_SUFFIX=".LATEST"
 latest_sha() {
-  binary_path="$1"
+  binary_path="${1:-}"
   if [ -z "${binary_path}" ]; then
     echo "binary not specified, run with: [repo-name]/[binary-name]"
     exit 1
@@ -37,12 +37,12 @@ latest_sha() {
 # download_binary takes a [repo]/[binary] and an optional sha and downloads
 # the specified binary. If the sha is missing the latest binary will be fetched.
 download_binary() {
-    binary_path="$1"
+    binary_path="${1:-}"
     if [ -z "${binary_path}" ]; then
       echo "binary not specified, run with: [repo-name]/[binary-name]"
       exit 1
     fi
-    sha="$2"
+    sha="${2:-}"
     if [ -z "${sha}" ]; then
         sha=$(latest_sha "${binary_path}")
     fi
@@ -63,8 +63,8 @@ download_binary() {
 #  Binary: cockroach/sql.test sha:
 #  https://github.com/cockroachdb/cockroach/commits/c7c582a6abfbe7ce3c1d23597d928bc8b6f370f6
 binary_sha_link() {
-  binary_path="$1"
-  sha="$2"
+  binary_path="${1:-}"
+  sha="${2:-}"
   if [ -z "${binary_path}" ]; then
     echo "binary not specified, run with: [repo-name]/[binary-name] [sha]"
     exit 1
