@@ -7,4 +7,5 @@ cd "$(dirname "$0")"
 cat <<'EOF' | parallel -j0 --linebuffer --verbose
 ./run_clustertest.sh
 ./run_logictests.sh
+./run_stress.sh
 EOF
