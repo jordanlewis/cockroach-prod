@@ -20,7 +20,6 @@
 # a limit on the number of retries. This may cause issues.
 #
 # A sample crontab (to be filled-in) to run this nightly would be:
-# MAILTO=myaddress@myprovider.com
 # USER=MYUSER
 # HOME=/home/MYUSER
 # PATH=/bin:/sbin:/usr/bin:/usr/bin:/usr/local/bin:/usr/local/sbin:/home/MYUSER/bin:/home/MYUSER/go/bin
@@ -34,7 +33,6 @@ source $(dirname $0)/utils.sh
 
 COCKROACH_BASE="${GOPATH%%:*}/src/github.com/cockroachdb"
 LOGS_DIR="${CIRCLE_ARTIFACTS}/logictests"
-MAILTO="${MAILTO-}"
 KEY_NAME="${KEY_NAME-google_compute_engine}"
 
 mkdir -p "${LOGS_DIR}"
