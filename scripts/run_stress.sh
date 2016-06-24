@@ -33,7 +33,7 @@ set -x
 source $(dirname $0)/utils.sh
 
 COCKROACH_BASE="${GOPATH}/src/github.com/cockroachdb"
-LOGS_DIR="${1-$(mktemp -d)}"
+LOGS_DIR="${CIRCLE_ARTIFACTS}/stress"
 MAILTO="${MAILTO-}"
 KEY_NAME="${KEY_NAME-google_compute_engine}"
 
@@ -51,7 +51,7 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-monitor="${GOPATH}/bin/supervisor"
+monitor="${GOPATH%%:*}/bin/supervisor"
 if [ ! -e "${monitor}" ]; then
   echo "Could not locate supervisor monitor at ${monitor}"
   exit 1
@@ -62,22 +62,31 @@ stress_sha=$(latest_sha ${STRESS_BINARY_PATH})
 
 cd "${COCKROACH_BASE}/cockroach/cloud/gce/stress"
 
+START=$(date +%s)
+# Assume the test failed.
+status="0"
+
 # Start the instances and work.
+# N.B. Do not separate the following two lines! You will break the test.
 do_retry "terraform apply --var=key_name=${KEY_NAME} --var=tests_sha=${tests_sha} --var=stress_sha=${stress_sha}" 5 5
-if [ $? -ne 0 ]; then
+if [ $? -eq 0 ]; then
+  # Fetch instances names.
+  instances=$(terraform output instance|cut -d'=' -f2|tr ',' ' ')
+  supervisor_hosts=$(echo ${instances}|fmt -1|awk '{print $1 ":9001"}'|xargs|tr ' ' ',')
+
+  summary=$(${monitor} --program=stress --addrs=${supervisor_hosts})
+  if [ $? -eq 0 ]; then
+    # Success!
+    status="1"
+  fi
+else
   echo "Terraform apply failed."
-  return 1
 fi
+END=$(date +%s)
+duration=$((END - START))
 
-# Fetch instances names.
-instances=$(terraform output instance|cut -d'=' -f2|tr ',' ' ')
-supervisor_hosts=$(echo ${instances}|fmt -1|awk '{print $1 ":9001"}'|xargs|tr ' ' ',')
-
-status="PASSED"
-summary=$(${monitor} --program=stress --addrs=${supervisor_hosts})
-if [ $? -ne 0 ]; then
-  status="FAILED"
-fi
+mkdir -p ${CIRCLE_TEST_REPORTS}/stress
+$(create_junit_single_output "github.com/cockroachdb/cockroach-prod/scripts/run_stress" "stresstests" $duration $status "${CIRCLE_TEST_REPORTS}/stress/stresstests.xml")
 
 # Fetch all logs.
 mkdir -p "${LOGS_DIR}"
