@@ -32,7 +32,7 @@ set -x
 
 source $(dirname $0)/utils.sh
 
-COCKROACH_BASE="${GOPATH}/src/github.com/cockroachdb"
+COCKROACH_BASE="${GOPATH%%:*}/src/github.com/cockroachdb"
 LOGS_DIR="${CIRCLE_ARTIFACTS}/stress"
 MAILTO="${MAILTO-}"
 KEY_NAME="${KEY_NAME-google_compute_engine}"
