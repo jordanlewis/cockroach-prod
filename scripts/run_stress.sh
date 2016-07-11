@@ -129,7 +129,7 @@ for i in ${instances}; do
   for test in $(find cockroach -type f -name '*.stdout' | sed 's/.stdout$//' | sort); do
     result=$(tail -n 1 "${test}.stdout")
     if [ "${result}" != "SUCCESS" ]; then
-      status="FAILED"
+      email_status="FAILED"
       result="FAILED"
       flat_name=$(echo ${test} | tr '/' '_')
       stdoutresponse="no ${test}.stdout file generated"
@@ -184,5 +184,11 @@ done
 if [ -z "${MAILTO}" ]; then
   echo "MAILTO variable not set, not sending email."
 else
-  cat summary.txt summary_success.txt | mail ${attach_args} -s "Stress tests ${status} ${run_timestamp}" ${MAILTO}
+  cat summary.txt summary_success.txt | mail ${attach_args} -s "Stress tests ${email_status} ${run_timestamp}" ${MAILTO}
+fi
+
+if [ $status -eq 0 ]; then
+    # The test failed. Exit with a non-zero return code so the caller knows we
+    # failed.
+    exit 1
 fi
