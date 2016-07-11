@@ -33,7 +33,7 @@ set -x
 source $(dirname $0)/utils.sh
 
 COCKROACH_BASE="${GOPATH}/src/github.com/cockroachdb"
-LOGS_DIR="${1-$(mktemp -d)}"
+LOGS_DIR="${1-CIRCLE_ARTIFACTS}"
 MAILTO="${MAILTO-}"
 KEY_NAME="${KEY_NAME-google_compute_engine}"
 
@@ -79,7 +79,7 @@ cd "${COCKROACH_BASE}/cockroach/cloud/gce/benchmarks"
 do_retry "terraform apply --state=terraform${BUILD_TYPE}.tfstate --var=key_name=${KEY_NAME} --var=benchmarks_package=${PACKAGE_TYPE} --var=benchmarks_sha=${benchmarks_sha}" 5 5
 if [ $? -ne 0 ]; then
   echo "Terraform apply failed."
-  return 1
+  exit 1
 fi
 
 # Fetch instances names.
@@ -105,7 +105,7 @@ done
 do_retry "terraform destroy --state=terraform${BUILD_TYPE}.tfstate --var=key_name=${KEY_NAME} --force" 5 5
 if [ $? -ne 0 ]; then
   echo "Terraform destroy failed."
-  return 1
+  exit 1
 fi
 
 cd "${LOGS_DIR}"
@@ -140,7 +140,11 @@ done
 # Send email.
 if [ -z "${MAILTO}" ]; then
   echo "MAILTO variable not set, not sending email."
-  exit 0
+else
+  mail -a "Content-type: text/html" -s "Benchmarks${BUILD_TYPE} ${status} ${run_timestamp}" ${MAILTO} < summary.html
 fi
 
-mail -a "Content-type: text/html" -s "Benchmarks${BUILD_TYPE} ${status} ${run_timestamp}" ${MAILTO} < summary.html
+if [ ${status} -ne "PASSED" ]; then
+    # If we didn't pass, make sure to return a non-zero exit code
+    exit 1
+fi

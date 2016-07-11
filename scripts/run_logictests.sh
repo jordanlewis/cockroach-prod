@@ -108,3 +108,7 @@ if [ $? -ne 0 ]; then
   echo "Terraform destroy failed."
   exit 1
 fi
+
+if [ ${status} -ne "1" ]; then
+    exit 1
+fi
