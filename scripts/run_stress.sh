@@ -149,6 +149,7 @@ for i in ${instances}; do
         IFS=', ' read -r -a failed_tests_array <<< "$failed_tests"
         for failed_test in "${failed_tests_array[@]}"
         do
+          status=0
           content=$(awk "/^=== RUN/ {flag=0};/^=== RUN   ${failed_test}$/ {flag=1} flag" ${test}.stderr)
           content_escaped=$(json_escape "${content}")
           title="stress: failed test in ${test}: ${failed_test}"
@@ -160,6 +161,7 @@ for i in ${instances}; do
         # Panics or test timeouts.
         panic=$(grep -oh '^ERROR: exit status 2' ${test}.stderr)
         if [ ! -z "${panic}" ]; then
+          status=0
           failed_test=$(grep -ohn '^=== RUN   \w*$' ${test}.stderr | awk END{print})
           failed_test_first_line=$(echo ${failed_test} | awk '{print $1}' FS=":")
           failed_test_name=$(echo ${failed_test} | grep -oh '\w*$')
